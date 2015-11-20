@@ -2,18 +2,10 @@ package wtr.g2;
 
 import wtr.sim.Point;
 
-import java.util.Random;
-
 public class Player implements wtr.sim.Player {
 
 	// your own id
 	private int self_id = -1;
-
-	// the remaining wisdom per player
-	private int[] W = null;
-
-	// random generator
-	private Random random = new Random();
 
 	private static int time;
 
