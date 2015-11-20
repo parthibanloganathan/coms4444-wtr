@@ -15,24 +15,39 @@ public class Player implements wtr.sim.Player {
 	// random generator
 	private Random random = new Random();
 
+	private static int time;
+
+    private static int num_strangers;
+    private static int num_friends;
+    private static int n; // number of other people
+
+    private static Person[] people;
+
 	// init function called once
-	public void init(int id, int[] friend_ids, int strangers)
-	{
+	public void init(int id, int[] friend_ids, int strangers) {
+		time = 0;
 		self_id = id;
-		// initialize the wisdom array
-		int N = friend_ids.length + strangers + 2;
-		W = new int [N];
-		for (int i = 0 ; i != N ; ++i)
-			W[i] = i == self_id ? 0 : -1;
-		for (int friend_id : friend_ids)
-			W[friend_id] = 50;
+
+        num_strangers = strangers;
+        num_friends = friend_ids.length;
+        n = num_friends + num_strangers + 1; // other people = friends + strangers + 1 soulmate
+
+        people = new Person[n];
+		for (int friend_id : friend_ids) {
+            Person friend = people[friend_id];
+            friend.id = friend_id;
+            friend.status = Person.Status.FRIEND;
+            friend.weight = 50;
+        }
 	}
 
 	// play function
 	public Point play(Point[] players, int[] chat_ids,
 	                  boolean wiser, int more_wisdom)
 	{
+		time++;
 		// find where you are and who you chat with
+        /**
 		int i = 0, j = 0;
 		while (players[i].id != self_id) i++;
 		while (players[j].id != chat_ids[i]) j++;
@@ -60,5 +75,7 @@ public class Player implements wtr.sim.Player {
 		double dx = 6 * Math.cos(dir);
 		double dy = 6 * Math.sin(dir);
 		return new Point(dx, dy, self_id);
+         **/
+        return null;
 	}
 }
