@@ -11,10 +11,10 @@ public class Person {
     public static enum Status{STRANGER, FRIEND, SOULMATE};
 
     public int id;
-    public int weight = -1;
+    public int wisdom = -1;
     public Status status; // stranger, friend or soul mate
     public Point last_known_position;
     public boolean chatted; // have we chatted with them before
     public int last_seen; // time when we last saw them
-    public int time_spoken; // how long we've spoken with them
+    public int remaining_wisdom; // how long we've spoken with them
 }
