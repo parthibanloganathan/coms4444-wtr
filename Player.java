@@ -11,7 +11,7 @@ public class Player implements wtr.sim.Player {
 
     private static int num_strangers;
     private static int num_friends;
-    private static int n; // number of other people
+    private static int n; // total number of people
 
     private static Person[] people;
 
@@ -22,7 +22,11 @@ public class Player implements wtr.sim.Player {
 
         num_strangers = strangers;
         num_friends = friend_ids.length;
-        n = num_friends + num_strangers + 1; // other people = friends + strangers + 1 soulmate
+        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+
+        Person us = people[self_id];
+        us.status = Person.Status.US;
+        us.wisdom = 0;
 
         people = new Person[n];
 		for (int friend_id : friend_ids) {
