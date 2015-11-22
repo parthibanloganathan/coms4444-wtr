@@ -93,12 +93,13 @@ public class Player implements wtr.sim.Player {
 		}
 		
 		if (bestPlayer != null) {
-			double dx = bestPlayer.x - self.x;
-			double dy = bestPlayer.y - self.y;
+			//Move a fraction of the way to other player's known position
+			double dx = (bestPlayer.x - self.x) / 4;
+			double dy = (bestPlayer.y - self.y) / 4;
 			return new Point(dx, dy, self_id);
 		}
-		
-		System.out.println("No player found to move to. Staying still");
+
+		//else stay still
 		return null;
 	}
 }
