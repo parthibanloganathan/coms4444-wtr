@@ -7,15 +7,16 @@ import wtr.sim.Point;
 
 public class Player implements wtr.sim.Player {
 
-	// your own id
-	private int self_id = -1;
-	private static int time;
+	//static vars
     private static int num_strangers;
     private static int num_friends;
     private static int n; // total number of people
-    private static Person[] people;
-
-	private Random random = new Random();
+	private static Random random = new Random();
+    
+    //Cannot be static
+	private int time;
+    private Person[] people;
+	private int self_id = -1;
 
 	public void init(int id, int[] friend_ids, int strangers) {
 		time = 0;
@@ -25,8 +26,10 @@ public class Player implements wtr.sim.Player {
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
 		people = new Person[n];
-		Arrays.fill(people, new Person());
-
+		for (int i = 0; i < people.length; i++) {
+			people[i] = new Person();
+		}
+		
         Person us = people[self_id];
         us.status = Person.Status.US;
         us.wisdom = 0;
@@ -35,10 +38,17 @@ public class Player implements wtr.sim.Player {
             Person friend = people[friend_id];
             friend.id = friend_id;
             friend.status = Person.Status.FRIEND;
+            //TODO: may not need both wisdom and remaining_wisdom
             friend.wisdom = 50;
+            friend.remaining_wisdom = 50;
         }
-		for (Person p : people) {
-			//Debug here. Check wisdom values
+		
+		//Debug
+		System.out.println("Number of friends " + num_friends);
+		System.out.println("Number of friends " + friend_ids.length);
+		System.out.println("N: " + n);
+		for (int i = 0; i < people.length; i++) {
+			Person p = people[i];
 			System.out.println(p.wisdom);
 		}
 	}
@@ -68,7 +78,6 @@ public class Player implements wtr.sim.Player {
 		if (i == j) {
 			for (Point p : players) {
 				a++;
-				System.out.println("Id:" + p.id);
 				// skip if no more wisdom to gain
 				if (people[p.id].remaining_wisdom == 0) {
 					b++;
@@ -80,13 +89,14 @@ public class Player implements wtr.sim.Player {
 				double dd = dx * dx + dy * dy;
 				// start chatting if in range
 				if (dd >= 0.25 && dd <= 4.0) {
-					System.out.println("HERE");
 					return new Point(0.0, 0.0, p.id);
 				}
 			}
 		}
 		
-		System.out.println("Counts: " + a + " " + b);
+//		if (a != b) {
+//			System.out.println("Counts: " + a + " " + b);
+//		}
 		double dir = random.nextDouble() * 2 * Math.PI;
 		double dx = 6 * Math.cos(dir);
 		double dy = 6 * Math.sin(dir);
