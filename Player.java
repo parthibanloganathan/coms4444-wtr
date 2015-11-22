@@ -17,17 +17,24 @@ public class Player implements wtr.sim.Player {
 	private int time;
     private Person[] people;
 	private int self_id = -1;
+	private boolean stationaryLastTurn;
 
 	public void init(int id, int[] friend_ids, int strangers) {
 		time = 0;
 		self_id = id;
+		stationaryLastTurn = true;
 		
         num_strangers = strangers;
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
 		people = new Person[n];
 		for (int i = 0; i < people.length; i++) {
-			people[i] = new Person();
+			Person p = new Person();
+			p.status = Person.Status.STRANGER;
+			p.id = i;
+			p.remaining_wisdom = -1;
+			p.wisdom = -1;
+			people[i] = p;
 		}
 		
         Person us = people[self_id];
@@ -41,7 +48,7 @@ public class Player implements wtr.sim.Player {
             //TODO: may not need both wisdom and remaining_wisdom
             friend.wisdom = 50;
             friend.remaining_wisdom = 50;
-        }	
+        }
 	}
 
 	// play function
@@ -76,6 +83,7 @@ public class Player implements wtr.sim.Player {
 				double dd = dx * dx + dy * dy;
 				// start chatting if in range
 				if (dd >= 0.25 && dd <= 4.0) {
+					System.out.println(self.id + " close enough to chat to player: " + p.id);
 					return new Point(0.0, 0.0, p.id);
 				}
 			}
@@ -94,12 +102,25 @@ public class Player implements wtr.sim.Player {
 		
 		if (bestPlayer != null) {
 			//Move a fraction of the way to other player's known position
-			double dx = (bestPlayer.x - self.x) / 4;
-			double dy = (bestPlayer.y - self.y) / 4;
-			return new Point(dx, dy, self_id);
+			double dx = bestPlayer.x - self.x;
+			double dy = bestPlayer.y - self.y;
+			System.out.println(self.id + " moving towards: " + bestPlayer.id);
+			return new Point(dx/3, dy/3, self_id);
 		}
 
-		//else stay still
-		return null;
+		//else alternate between staying still and random move
+		int maxDist = 6;
+//		if (stationaryLastTurn) {
+//			maxDist = 6;
+//		}
+//		else {
+//			maxDist = 0;
+//		}
+		stationaryLastTurn = !stationaryLastTurn;
+		double dir = random.nextDouble() * 2 * Math.PI;
+		double dx = maxDist * Math.cos(dir);
+		double dy = maxDist * Math.sin(dir);
+		System.out.println("Random move");
+		return new Point(dx, dy, self_id);
 	}
 }
