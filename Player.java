@@ -41,16 +41,7 @@ public class Player implements wtr.sim.Player {
             //TODO: may not need both wisdom and remaining_wisdom
             friend.wisdom = 50;
             friend.remaining_wisdom = 50;
-        }
-		
-		//Debug
-		System.out.println("Number of friends " + num_friends);
-		System.out.println("Number of friends " + friend_ids.length);
-		System.out.println("N: " + n);
-		for (int i = 0; i < people.length; i++) {
-			Person p = people[i];
-			System.out.println(p.wisdom);
-		}
+        }	
 	}
 
 	// play function
@@ -94,9 +85,6 @@ public class Player implements wtr.sim.Player {
 			}
 		}
 		
-//		if (a != b) {
-//			System.out.println("Counts: " + a + " " + b);
-//		}
 		double dir = random.nextDouble() * 2 * Math.PI;
 		double dx = 6 * Math.cos(dir);
 		double dy = 6 * Math.sin(dir);
