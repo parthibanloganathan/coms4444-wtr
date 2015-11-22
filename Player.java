@@ -64,14 +64,10 @@ public class Player implements wtr.sim.Player {
 			return new Point(0.0, 0.0, chat.id);
 		
 		// try to initiate chat if previously not chatting
-		int a = 0;
-		int b = 0;
 		if (i == j) {
 			for (Point p : players) {
-				a++;
 				// skip if no more wisdom to gain
 				if (people[p.id].remaining_wisdom == 0) {
-					b++;
 					continue;
 				}
 				// compute squared distance
@@ -85,9 +81,24 @@ public class Player implements wtr.sim.Player {
 			}
 		}
 		
-		double dir = random.nextDouble() * 2 * Math.PI;
-		double dx = 6 * Math.cos(dir);
-		double dy = 6 * Math.sin(dir);
-		return new Point(dx, dy, self_id);
+		//Could not find a chat, so plan next move
+		int maxWisdom = 0;
+		Point bestPlayer = null;
+		for (Point p : players) {
+			int curPlayerRemWisdom = people[p.id].remaining_wisdom;
+			if (curPlayerRemWisdom > maxWisdom) {
+				maxWisdom = curPlayerRemWisdom;
+				bestPlayer = p;
+			}
+		}
+		
+		if (bestPlayer != null) {
+			double dx = bestPlayer.x - self.x;
+			double dy = bestPlayer.y - self.y;
+			return new Point(dx, dy, self_id);
+		}
+		
+		System.out.println("No player found to move to. Staying still");
+		return null;
 	}
 }
