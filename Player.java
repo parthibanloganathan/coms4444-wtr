@@ -7,6 +7,9 @@ import wtr.sim.Point;
 
 public class Player implements wtr.sim.Player {
 
+	//constants
+	public static final int PLAYER_RANGE = 6;
+	
 	//static vars
     private static int num_strangers;
     private static int num_friends;
@@ -14,10 +17,11 @@ public class Player implements wtr.sim.Player {
 	private static Random random = new Random();
     
     //Cannot be static
+	private int self_id = -1;
 	private int time;
     private Person[] people;
-	private int self_id = -1;
 	private boolean stationaryLastTurn;
+	private Point prevPos;
 
 	public void init(int id, int[] friend_ids, int strangers) {
 		time = 0;
@@ -65,10 +69,19 @@ public class Player implements wtr.sim.Player {
 		Point self = players[i];
 		Point chat = players[j];
 		people[chat.id].remaining_wisdom = more_wisdom;
+//		System.out.println(chat.id + " to " + self.id + " has rem wisdom " + more_wisdom);
 		
 		// attempt to continue chatting if there is more wisdom
 		if (wiser)
 			return new Point(0.0, 0.0, chat.id);
+		
+		if (time % 3 == 0) {
+			if (prevPos != null && prevPos.x == self.x && prevPos.y == self.y) {
+//				System.out.println("Player has been still too long. Make him move");
+				return randomMove(PLAYER_RANGE);
+			}
+			prevPos = self;
+		}
 		
 		// try to initiate chat if previously not chatting
 		if (i == j) {
@@ -83,7 +96,7 @@ public class Player implements wtr.sim.Player {
 				double dd = dx * dx + dy * dy;
 				// start chatting if in range
 				if (dd >= 0.25 && dd <= 4.0) {
-					System.out.println(self.id + " close enough to chat to player: " + p.id);
+//					System.out.println(self.id + " close enough to chat to player: " + p.id);
 					return new Point(0.0, 0.0, p.id);
 				}
 			}
@@ -109,13 +122,16 @@ public class Player implements wtr.sim.Player {
 		}
 
 		//else alternate between staying still and random move
-		int maxDist = 6;
 //		if (stationaryLastTurn) {
-//			maxDist = 6;
+			return randomMove(PLAYER_RANGE);
 //		}
 //		else {
-//			maxDist = 0;
+//			return randomMove(0);
 //		}
+//		stationaryLastTurn = !stationaryLastTurn;
+	}
+	
+	public Point randomMove(int maxDist) {
 		stationaryLastTurn = !stationaryLastTurn;
 		double dir = random.nextDouble() * 2 * Math.PI;
 		double dx = maxDist * Math.cos(dir);
