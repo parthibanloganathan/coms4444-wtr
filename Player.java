@@ -98,7 +98,7 @@ public class Player implements wtr.sim.Player {
                 double dis = Utils.dist(self, p);
 
 				// start chatting if in range
-				if (dis >= 0.25 && dis <= 4.0) {
+				if (dis >= 0.5 && dis <= 2) {
 //					System.out.println(self.id + " close enough to chat to player: " + p.id);
 					return new Point(0.0, 0.0, p.id);
 				}
