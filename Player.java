@@ -1,9 +1,8 @@
 package wtr.g2;
 
-import java.util.Arrays;
-import java.util.Random;
-
 import wtr.sim.Point;
+
+import java.util.Random;
 
 public class Player implements wtr.sim.Player {
 
@@ -31,20 +30,25 @@ public class Player implements wtr.sim.Player {
         num_strangers = strangers;
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+
 		people = new Person[n];
+
+		// Initialize strangers
 		for (int i = 0; i < people.length; i++) {
-			Person p = new Person();
-			p.status = Person.Status.STRANGER;
-			p.id = i;
-			p.remaining_wisdom = -1;
-			p.wisdom = -1;
-			people[i] = p;
+			Person stranger = new Person();
+			stranger.status = Person.Status.STRANGER;
+			stranger.id = i;
+			stranger.remaining_wisdom = -1;
+			stranger.wisdom = -1;
+			people[i] = stranger;
 		}
-		
+
+		// Initialize us
         Person us = people[self_id];
         us.status = Person.Status.US;
         us.wisdom = 0;
 
+		// Initialize friends
 		for (int friend_id : friend_ids) {
             Person friend = people[friend_id];
             friend.id = friend_id;
