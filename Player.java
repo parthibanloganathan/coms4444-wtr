@@ -95,11 +95,10 @@ public class Player implements wtr.sim.Player {
 					continue;
 				}
 				// compute squared distance
-				double dx = self.x - p.x;
-				double dy = self.y - p.y;
-				double dd = dx * dx + dy * dy;
+                double dis = Utils.dist(self, p);
+
 				// start chatting if in range
-				if (dd >= 0.25 && dd <= 4.0) {
+				if (dis >= 0.25 && dis <= 4.0) {
 //					System.out.println(self.id + " close enough to chat to player: " + p.id);
 					return new Point(0.0, 0.0, p.id);
 				}
