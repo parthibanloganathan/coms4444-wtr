@@ -8,6 +8,7 @@ public class Player implements wtr.sim.Player {
 
     // Constants
     public static final int PLAYER_RANGE = 6;
+    public static final double MIN_RADIUS_FOR_CONVERSATION = 0.5;
 
     // Static vars
     private static int num_strangers;
@@ -129,11 +130,9 @@ public class Player implements wtr.sim.Player {
         }
 
         if (bestPlayer != null) {
-            // Move a fraction of the way to other player's known position
-            double dx = bestPlayer.x - self.x;
-            double dy = bestPlayer.y - self.y;
+            // Move towards target player's known position
             System.out.println(self.id + " moving towards: " + bestPlayer.id);
-            return new Point(dx/3, dy/3, self_id);
+            return moveToOtherPlayer(self, bestPlayer);
         }
 
         //else alternate between staying still and random move
@@ -144,6 +143,14 @@ public class Player implements wtr.sim.Player {
         //			return randomMove(0);
         //		}
         //		stationaryLastTurn = !stationaryLastTurn;
+    }
+
+    private Point moveToOtherPlayer(Point us, Point them) {
+        double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION;
+        double dx = them.x - us.x;
+        double dy = them.y - us.y;
+        double theta = Math.atan2(dy, dx);
+        return new Point(us.x + dis*Math.cos(theta), us.y + dis*Math.sin(theta), self_id);
     }
 
     public Point randomMove(int maxDist) {
