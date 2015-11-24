@@ -17,4 +17,5 @@ public class Person {
     public boolean chatted; // have we chatted with them before
     public int last_seen; // time when we last saw them
     public int remaining_wisdom; // how long we've spoken with them
+    public boolean has_left; // have they left a conversation with us
 }
