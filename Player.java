@@ -23,39 +23,40 @@ public class Player implements wtr.sim.Player {
     private boolean stationaryLastTurn;
     private Point prevPos;
     private int last_chatted;
+    private double expected_wisdom;
 
     public void init(int id, int[] friend_ids, int strangers) {
-        time = 0;
-        self_id = id;
-        stationaryLastTurn = true;
-        num_strangers = strangers;
-        num_friends = friend_ids.length;
-        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
-        people = new Person[n];
+	time = 0;
+	self_id = id;
+	stationaryLastTurn = true;
+	num_strangers = strangers;
+	num_friends = friend_ids.length;
+	n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+	people = new Person[n];
+	for (int i = 0; i < people.length; i++) {
+	    Person p = new Person();
+	    p.status = Person.Status.STRANGER;
+	    p.id = i;
+	    p.remaining_wisdom = -1;
+	    p.wisdom = -1;
+	    p.has_left = false;
+	    people[i] = p;			
+	}
+		
+	Person us = people[self_id];
+	us.status = Person.Status.US;
+	us.wisdom = 0;
 
-        for (int i = 0; i < people.length; i++) {
-            Person p = new Person();
-            p.status = Person.Status.STRANGER;
-            p.id = i;
-            p.remaining_wisdom = -1;
-            p.wisdom = -1;
-            p.has_left = false;
-            people[i] = p;
-        }
-
-        Person us = people[self_id];
-        us.status = Person.Status.US;
-        us.wisdom = 0;
-
-        for (int friend_id : friend_ids) {
-            Person friend = people[friend_id];
-            friend.id = friend_id;
-            friend.status = Person.Status.FRIEND;
-            //TODO: may not need both wisdom and remaining_wisdom
-            friend.wisdom = 50;
-            friend.remaining_wisdom = 50;
-            last_chatted = -1;
-        }
+	for (int friend_id : friend_ids) {
+	    Person friend = people[friend_id];
+	    friend.id = friend_id;
+	    friend.status = Person.Status.FRIEND;
+	    //TODO: may not need both wisdom and remaining_wisdom
+	    friend.wisdom = 50;
+	    friend.remaining_wisdom = 50;
+	    last_chatted = -1;
+	}
+	expected_wisdom = 10;
     }
 
     public boolean blocked(Point[] players, int target_id, double threshold) {
@@ -69,8 +70,7 @@ public class Player implements wtr.sim.Player {
     }
 
     // play function
-    public Point play(Point[] players, int[] chat_ids,
-                      boolean wiser, int more_wisdom) {
+    public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
         // find where you are and who you chat with
         int i = 0, j = 0;
@@ -102,20 +102,19 @@ public class Player implements wtr.sim.Player {
 
         // try to initiate chat if previously not chatting
         if (i == j) {
+	    double closest_dist = 2.0;
+	    Point closest_player = null;;
             for (Point p : players) {
-                // skip if no more wisdom to gain
-                if (people[p.id].remaining_wisdom == 0) {
-                    continue;
-                }
                 // compute squared distance
-                double dis = Utils.dist(self, p);
-
-                // start chatting if in range
-                if (dis >= 0.5 && dis <= 2) {
-//					System.out.println(self.id + " close enough to chat to player: " + p.id);
-                    return new Point(0.0, 0.0, p.id);
+                double dis = Math.sqrt(Utils.dist(self, p));
+		if (dis < closest_dist && dis < 2) {
+		    closest_dist = dis;
+		    closest_player = p;
                 }
             }
+	    if (0.5 < closest_dist && closest_dist < 2.0 && people[closest_player.id].remaining_wisdom > 0) {
+		return new Point(0,0,closest_player.id);
+	    }
         }
 
         //Could not find a chat, so plan next move
