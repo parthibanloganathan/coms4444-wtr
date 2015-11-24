@@ -28,10 +28,9 @@ public class Player implements wtr.sim.Player {
 	time = 0;
 	self_id = id;
 	stationaryLastTurn = true;
-		
-        num_strangers = strangers;
-        num_friends = friend_ids.length;
-        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+	num_strangers = strangers;
+	num_friends = friend_ids.length;
+	n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
 	people = new Person[n];
 	for (int i = 0; i < people.length; i++) {
 	    Person p = new Person();
@@ -43,19 +42,19 @@ public class Player implements wtr.sim.Player {
 	    people[i] = p;			
 	}
 		
-        Person us = people[self_id];
-        us.status = Person.Status.US;
-        us.wisdom = 0;
+	Person us = people[self_id];
+	us.status = Person.Status.US;
+	us.wisdom = 0;
 
 	for (int friend_id : friend_ids) {
-            Person friend = people[friend_id];
-            friend.id = friend_id;
-            friend.status = Person.Status.FRIEND;
-            //TODO: may not need both wisdom and remaining_wisdom
-            friend.wisdom = 50;
-            friend.remaining_wisdom = 50;
+	    Person friend = people[friend_id];
+	    friend.id = friend_id;
+	    friend.status = Person.Status.FRIEND;
+	    //TODO: may not need both wisdom and remaining_wisdom
+	    friend.wisdom = 50;
+	    friend.remaining_wisdom = 50;
 	    last_chatted = -1;
-        }
+	}
     }
 
 
@@ -101,7 +100,7 @@ public class Player implements wtr.sim.Player {
 	    }
 	    prevPos = self;
 	}
-		
+	
 	// try to initiate chat if previously not chatting
 	if (i == j) {
 	    for (Point p : players) {
@@ -110,12 +109,11 @@ public class Player implements wtr.sim.Player {
 		    continue;
 		}
 		// compute squared distance
-		double dx = self.x - p.x;
-		double dy = self.y - p.y;
-		double dd = dx * dx + dy * dy;
+		double dis = Utils.dist(self, p);
+
 		// start chatting if in range
-		if (dd >= 0.25 && dd <= 4.0 && !people[p.id].has_left) {
-		    // System.out.println(self.id + " close enough to chat to player: " + p.id);
+		if (dis >= 0.25 && dis <= 4.0 && !people[p.id].has_left) {
+		    //					System.out.println(self.id + " close enough to chat to player: " + p.id);
 		    return new Point(0.0, 0.0, p.id);
 		}
 	    }
@@ -157,5 +155,6 @@ public class Player implements wtr.sim.Player {
 	double dy = maxDist * Math.sin(dir);
 	System.out.println("Random move");
 	return new Point(dx, dy, self_id);
-    }
+    }	       
+    
 }

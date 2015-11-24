@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Person {
-    public static Set <Integer> valid_wisdoms = new HashSet <Integer> (Arrays.asList(new Integer[] {0,10,20,50,200}));
-    public static enum Status{US, STRANGER, FRIEND, SOULMATE};
+    public static Set<Integer> valid_wisdoms = new HashSet(Arrays.asList(new int[]{0,10,20,50,200}));
+    public enum Status{US,STRANGER, FRIEND, SOULMATE};
 
     public int id;
     public int wisdom = -1;
