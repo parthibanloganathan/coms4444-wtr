@@ -81,7 +81,6 @@ public class Player implements wtr.sim.Player {
         Point self = players[i];
         Point chat = players[j];
         people[chat.id].remaining_wisdom = more_wisdom;
-        //		System.out.println(chat.id + " to " + self.id + " has rem wisdom " + more_wisdom);
 
         // attempt to continue chatting if there is more wisdom
         if (wiser) {
@@ -92,9 +91,10 @@ public class Player implements wtr.sim.Player {
             people[last_chatted].has_left = true;
             last_chatted = -1;
         }
+
+        //If we haven't moved in some time, initiate random move
         if (time % 3 == 0) {
             if (prevPos != null && prevPos.x == self.x && prevPos.y == self.y) {
-                // System.out.println("Player has been still too long. Make him move");
                 return randomMove(PLAYER_RANGE);
             }
             prevPos = self;
@@ -102,24 +102,33 @@ public class Player implements wtr.sim.Player {
 
         // try to initiate chat if previously not chatting
         if (i == j) {
-	    double closest_dist = 2.0;
-	    Point closest_player = null;;
+            double closest_dist = 2.0;
+            Point closest_player = null;
             for (Point p : players) {
                 // compute squared distance
                 double dis = Math.sqrt(Utils.dist(self, p));
-		if (dis < closest_dist && dis < 2) {
-		    closest_dist = dis;
-		    closest_player = p;
+                if (dis < closest_dist && dis < 2) {
+                    closest_dist = dis;
+                    closest_player = p;
                 }
             }
-	    if (0.5 < closest_dist && closest_dist < 2.0 && people[closest_player.id].remaining_wisdom > 0) {
-		return new Point(0,0,closest_player.id);
-	    }
+            if (0.5 < closest_dist && closest_dist < 2.0 && people[closest_player.id].remaining_wisdom > 0) {
+                return new Point(0,0,closest_player.id);
+            }
         }
 
         //Could not find a chat, so plan next move
-        int maxWisdom = 0;
+        Point bestPlayer = chooseBestPlayer(players);
+        if (bestPlayer != null) {
+            return moveToOtherPlayer(self, bestPlayer);
+        }
+        //If all else fails
+        return randomMove(PLAYER_RANGE);
+    }
+
+    private Point chooseBestPlayer(Point[] players) {
         Point bestPlayer = null;
+        int maxWisdom = 0;
         for (Point p : players) {
             int curPlayerRemWisdom = people[p.id].remaining_wisdom;
             if (curPlayerRemWisdom > maxWisdom && !people[p.id].has_left) {
@@ -127,21 +136,7 @@ public class Player implements wtr.sim.Player {
                 bestPlayer = p;
             }
         }
-
-        if (bestPlayer != null) {
-            // Move towards target player's known position
-            System.out.println(self.id + " moving towards: " + bestPlayer.id);
-            return moveToOtherPlayer(self, bestPlayer);
-        }
-
-        //else alternate between staying still and random move
-        //		if (stationaryLastTurn) {
-        return randomMove(PLAYER_RANGE);
-        //		}
-        //		else {
-        //			return randomMove(0);
-        //		}
-        //		stationaryLastTurn = !stationaryLastTurn;
+        return bestPlayer;
     }
 
     private Point moveToOtherPlayer(Point us, Point them) {
@@ -149,15 +144,23 @@ public class Player implements wtr.sim.Player {
         double dx = them.x - us.x;
         double dy = them.y - us.y;
         double theta = Math.atan2(dy, dx);
-        return new Point(us.x + dis*Math.cos(theta), us.y + dis*Math.sin(theta), self_id);
+        return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
     }
 
-    public Point randomMove(int maxDist) {
+    private Point randomMove(int maxDist) {
         stationaryLastTurn = !stationaryLastTurn;
         double dir = random.nextDouble() * 2 * Math.PI;
         double dx = maxDist * Math.cos(dir);
         double dy = maxDist * Math.sin(dir);
-        System.out.println("Random move");
         return new Point(dx, dy, self_id);
+    }
+
+    private boolean isAvailable(int id, Point[] players, int[] chat_ids){
+        int i = 0, j = 0;
+        while (players[i].id != id)
+            i++;
+        while (players[j].id != chat_ids[i])
+            j++;
+        return i == j;
     }
 }
