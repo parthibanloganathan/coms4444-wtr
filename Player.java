@@ -1,7 +1,10 @@
 package wtr.g2;
 
 import wtr.sim.Point;
+
+import java.util.LinkedList;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
 
 public class Player implements wtr.sim.Player {
@@ -17,7 +20,7 @@ public class Player implements wtr.sim.Player {
     private static int n; // total number of people
     private static Random random = new Random();
 
-    // Play specific variables
+    // Player specific variables
     private int self_id = -1;
     private int time;
     private Person[] people;
@@ -26,6 +29,9 @@ public class Player implements wtr.sim.Player {
     private int last_chatted;
     private int last_time_chatted;
     private double expected_wisdom;
+
+    private Queue<Point> prevLocations;
+    private Point locationXTicsAgo;
 
     public void init(int id, int[] friend_ids, int strangers) {
         time = 0;
@@ -36,6 +42,7 @@ public class Player implements wtr.sim.Player {
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
         people = new Person[n];
         expected_wisdom = 10;
+        prevLocations = new LinkedList<>();
 
         for (int i = 0; i < people.length; i++) {
             Person p = new Person();
@@ -44,12 +51,14 @@ public class Player implements wtr.sim.Player {
             p.remaining_wisdom = -1;
             p.wisdom = -1;
             p.has_left = false;
+            p.chatted = false;
             people[i] = p;
         }
 
         Person us = people[self_id];
         us.status = Person.Status.US;
         us.wisdom = 0;
+        us.remaining_wisdom = 0;
 
         for (int friend_id : friend_ids) {
             Person friend = people[friend_id];
@@ -84,6 +93,11 @@ public class Player implements wtr.sim.Player {
         Point chat = players[j];
         people[chat.id].remaining_wisdom = more_wisdom;
         boolean chatting = (i != j);
+
+        if (prevLocations.size() == 4) {
+            prevLocations.add(self);
+            locationXTicsAgo = prevLocations.poll();
+        }
 
         if (chatting) {
             // attempt to continue chatting if there is more wisdom
@@ -149,6 +163,8 @@ public class Player implements wtr.sim.Player {
         Point bestPlayer = null;
         int maxWisdom = 0;
         for (Point p : players) {
+            if (p.id == self_id)
+                continue;
             int curPlayerRemWisdom = people[p.id].remaining_wisdom;
             if (curPlayerRemWisdom > maxWisdom && !people[p.id].has_left) {
                 maxWisdom = curPlayerRemWisdom;
@@ -174,13 +190,18 @@ public class Player implements wtr.sim.Player {
         return new Point(dx, dy, self_id);
     }
 
-    //From g5
+    //From g5. Throws exceptions once in a while for some reason
     private boolean isAvailable(int id, Point[] players, int[] chat_ids){
         int i = 0, j = 0;
-        while (players[i].id != id)
-            i++;
-        while (players[j].id != chat_ids[i])
-            j++;
+        try {
+            while (players[i].id != id)
+                i++;
+            while (players[j].id != chat_ids[i])
+                j++;
+        }
+        catch (IndexOutOfBoundsException e) {
+            return true;
+        }
         return i == j;
     }
 
