@@ -1,13 +1,14 @@
 package wtr.g2;
 
 import wtr.sim.Point;
-
+import java.util.PriorityQueue;
 import java.util.Random;
 
 public class Player implements wtr.sim.Player {
 
     // Constants
     public static final int PLAYER_RANGE = 6;
+    public static final int PATIENCE_IN_TICS = 5;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.5;
 
     // Static vars
@@ -23,40 +24,42 @@ public class Player implements wtr.sim.Player {
     private boolean stationaryLastTurn;
     private Point prevPos;
     private int last_chatted;
+    private int last_time_chatted;
     private double expected_wisdom;
 
     public void init(int id, int[] friend_ids, int strangers) {
-	time = 0;
-	self_id = id;
-	stationaryLastTurn = true;
-	num_strangers = strangers;
-	num_friends = friend_ids.length;
-	n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
-	people = new Person[n];
-	for (int i = 0; i < people.length; i++) {
-	    Person p = new Person();
-	    p.status = Person.Status.STRANGER;
-	    p.id = i;
-	    p.remaining_wisdom = -1;
-	    p.wisdom = -1;
-	    p.has_left = false;
-	    people[i] = p;			
-	}
-		
-	Person us = people[self_id];
-	us.status = Person.Status.US;
-	us.wisdom = 0;
+        time = 0;
+        self_id = id;
+        stationaryLastTurn = true;
+        num_strangers = strangers;
+        num_friends = friend_ids.length;
+        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+        people = new Person[n];
+        expected_wisdom = 10;
 
-	for (int friend_id : friend_ids) {
-	    Person friend = people[friend_id];
-	    friend.id = friend_id;
-	    friend.status = Person.Status.FRIEND;
-	    //TODO: may not need both wisdom and remaining_wisdom
-	    friend.wisdom = 50;
-	    friend.remaining_wisdom = 50;
-	    last_chatted = -1;
-	}
-	expected_wisdom = 10;
+        for (int i = 0; i < people.length; i++) {
+            Person p = new Person();
+            p.status = Person.Status.STRANGER;
+            p.id = i;
+            p.remaining_wisdom = -1;
+            p.wisdom = -1;
+            p.has_left = false;
+            people[i] = p;
+        }
+
+        Person us = people[self_id];
+        us.status = Person.Status.US;
+        us.wisdom = 0;
+
+        for (int friend_id : friend_ids) {
+            Person friend = people[friend_id];
+            friend.id = friend_id;
+            friend.status = Person.Status.FRIEND;
+            //TODO: may not need both wisdom and remaining_wisdom
+            friend.wisdom = 50;
+            friend.remaining_wisdom = 50;
+            last_chatted = -1;
+        }
     }
 
     public boolean blocked(Point[] players, int target_id, double threshold) {
@@ -69,7 +72,6 @@ public class Player implements wtr.sim.Player {
         return false;
     }
 
-    // play function
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
         // find where you are and who you chat with
@@ -81,47 +83,65 @@ public class Player implements wtr.sim.Player {
         Point self = players[i];
         Point chat = players[j];
         people[chat.id].remaining_wisdom = more_wisdom;
+        boolean chatting = (i != j);
 
-        // attempt to continue chatting if there is more wisdom
-        if (wiser) {
-            last_chatted = chat.id;
-            return new Point(0.0, 0.0, chat.id);
-        }
-        else if (last_chatted != -1 && (people[last_chatted].remaining_wisdom == 9 || people[last_chatted].remaining_wisdom == 19) ) {
-            people[last_chatted].has_left = true;
-            last_chatted = -1;
-        }
-
-        //If we haven't moved in some time, initiate random move
-        if (time % 3 == 0) {
-            if (prevPos != null && prevPos.x == self.x && prevPos.y == self.y) {
-                return randomMove(PLAYER_RANGE);
+        if (chatting) {
+            // attempt to continue chatting if there is more wisdom
+            if (wiser) {
+                last_chatted = chat.id;
+                last_time_chatted = time;
+                return new Point(0.0, 0.0, chat.id);
             }
-            prevPos = self;
-        }
-
-        // try to initiate chat if previously not chatting
-        if (i == j) {
-            double closest_dist = 2.0;
-            Point closest_player = null;
-            for (Point p : players) {
-                // compute squared distance
-                double dis = Math.sqrt(Utils.dist(self, p));
-                if (dis < closest_dist && dis < 2) {
-                    closest_dist = dis;
-                    closest_player = p;
+            else { //wait some time before leaving conversation
+                if (time - last_time_chatted < PATIENCE_IN_TICS) {
+                    return new Point(0.0, 0.0, chat.id);
                 }
             }
-            if (0.5 < closest_dist && closest_dist < 2.0 && people[closest_player.id].remaining_wisdom > 0) {
-                return new Point(0,0,closest_player.id);
+        }
+        else {
+            // See if other player left because we have no wisdom remaining to give
+            if (last_chatted != -1 && (people[last_chatted].remaining_wisdom == 9 || people[last_chatted].remaining_wisdom == 19) ) {
+                people[last_chatted].has_left = true;
+                last_chatted = -1;
+            }
+
+            // try to initiate chat if previously not chatting
+            // Use a pq to sort potential targets by closest distance
+            PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(self));
+            if (i == j) {
+                for (Point p : players) {
+                    if (people[p.id].remaining_wisdom == 0)
+                        continue;
+
+                    double dis = Math.sqrt(Utils.dist(self, p));
+                    if (dis <= 2.0 && dis >= 0.5) {
+                        potentialTargets.add(p);
+                    }
+                }
+                while (!potentialTargets.isEmpty()) {
+                    Point nextTarget = potentialTargets.poll();
+                    if (isAvailable(nextTarget.id, players, chat_ids)) {
+                        Utils.printChatInitiation(self, nextTarget);
+                        return new Point(0.0, 0.0, nextTarget.id);
+                    }
+                }
+            }
+
+            //Could not find a chat, so plan next move
+            Point bestPlayer = chooseBestPlayer(players);
+            if (bestPlayer != null) {
+                return moveToOtherPlayer(self, bestPlayer);
             }
         }
 
-        //Could not find a chat, so plan next move
-        Point bestPlayer = chooseBestPlayer(players);
-        if (bestPlayer != null) {
-            return moveToOtherPlayer(self, bestPlayer);
-        }
+//        If we haven't moved in some time, initiate random move
+//        if (time % 3 == 0) {
+//            if (prevPos != null && prevPos.x == self.x && prevPos.y == self.y) {
+//                return randomMove(PLAYER_RANGE);
+//            }
+//            prevPos = self;
+//        }
+
         //If all else fails
         return randomMove(PLAYER_RANGE);
     }
@@ -155,6 +175,7 @@ public class Player implements wtr.sim.Player {
         return new Point(dx, dy, self_id);
     }
 
+    //From g5
     private boolean isAvailable(int id, Point[] players, int[] chat_ids){
         int i = 0, j = 0;
         while (players[i].id != id)
@@ -163,4 +184,5 @@ public class Player implements wtr.sim.Player {
             j++;
         return i == j;
     }
+
 }
