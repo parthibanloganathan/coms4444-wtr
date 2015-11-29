@@ -12,6 +12,7 @@ public class Player implements wtr.sim.Player {
     // Constants
     public static final int PLAYER_RANGE = 6;
     public static final int PATIENCE_IN_TICS = 5;
+    public static final int XTICKS = 4;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.5;
 
     // Static vars
@@ -24,19 +25,16 @@ public class Player implements wtr.sim.Player {
     private int self_id = -1;
     private int time;
     private Person[] people;
-    private boolean stationaryLastTurn;
-    private Point prevPos;
     private int last_chatted;
     private int last_time_chatted;
     private double expected_wisdom;
 
     private Queue<Point> prevLocations;
-    private Point locationXTicsAgo;
+    private Point locationXTicksAgo;
 
     public void init(int id, int[] friend_ids, int strangers) {
         time = 0;
         self_id = id;
-        stationaryLastTurn = true;
         num_strangers = strangers;
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
@@ -93,10 +91,12 @@ public class Player implements wtr.sim.Player {
         Point chat = players[j];
         people[chat.id].remaining_wisdom = more_wisdom;
         boolean chatting = (i != j);
+        boolean prevLocationsFull = (prevLocations.size() == XTICKS);
 
-        if (prevLocations.size() == 4) {
-            prevLocations.add(self);
-            locationXTicsAgo = prevLocations.poll();
+        // Find location x ticks ago
+        prevLocations.add(self);
+        if (prevLocationsFull) {
+            locationXTicksAgo = prevLocations.poll();
         }
 
         if (chatting) {
@@ -113,6 +113,11 @@ public class Player implements wtr.sim.Player {
             }
         }
         else {
+            // If player is stationery too long, move
+            if (prevLocationsFull && Utils.pointsAreSame(locationXTicksAgo, self)) {
+                System.out.println("G2: Still too long: random move");
+                return randomMove(self, PLAYER_RANGE);
+            }
             // See if other player left because we have no wisdom remaining to give
             if (last_chatted != -1 && (people[last_chatted].remaining_wisdom == 9 || people[last_chatted].remaining_wisdom == 19) ) {
                 people[last_chatted].has_left = true;
@@ -147,16 +152,8 @@ public class Player implements wtr.sim.Player {
             }
         }
 
-//        If we haven't moved in some time, initiate random move
-//        if (time % 3 == 0) {
-//            if (prevPos != null && prevPos.x == self.x && prevPos.y == self.y) {
-//                return randomMove(PLAYER_RANGE);
-//            }
-//            prevPos = self;
-//        }
-
         //If all else fails
-        return randomMove(PLAYER_RANGE);
+        return randomMove(self, PLAYER_RANGE);
     }
 
     private Point chooseBestPlayer(Point[] players) {
@@ -182,12 +179,16 @@ public class Player implements wtr.sim.Player {
         return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
     }
 
-    private Point randomMove(int maxDist) {
-        stationaryLastTurn = !stationaryLastTurn;
-        double dir = random.nextDouble() * 2 * Math.PI;
-        double dx = maxDist * Math.cos(dir);
-        double dy = maxDist * Math.sin(dir);
-        return new Point(dx, dy, self_id);
+    private Point randomMove(Point self, int maxDist) {
+        double dir, dx, dy;
+        Point rand;
+        do {
+            dir = random.nextDouble() * 2 * Math.PI;
+            dx = maxDist * Math.cos(dir);
+            dy = maxDist * Math.sin(dir);
+            rand = new Point(dx, dy, self_id);
+        } while (Utils.pointOutOfRange(self, dx, dy));
+        return rand;
     }
 
     //From g5. Throws exceptions once in a while for some reason
@@ -200,7 +201,7 @@ public class Player implements wtr.sim.Player {
                 j++;
         }
         catch (IndexOutOfBoundsException e) {
-            return true;
+            return false;
         }
         return i == j;
     }
