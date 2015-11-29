@@ -108,22 +108,21 @@ public class Player implements wtr.sim.Player {
             // try to initiate chat if previously not chatting
             // Use a pq to sort potential targets by closest distance
             PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(self));
-            if (i == j) {
-                for (Point p : players) {
-                    if (people[p.id].remaining_wisdom == 0)
-                        continue;
+            for (Point p : players) {
+                if (people[p.id].remaining_wisdom == 0)
+                    continue;
 
-                    double dis = Math.sqrt(Utils.dist(self, p));
-                    if (dis <= 2.0 && dis >= 0.5) {
-                        potentialTargets.add(p);
-                    }
+                double dis = Math.sqrt(Utils.dist(self, p));
+                if (dis <= 2.0 && dis >= 0.5) {
+                    potentialTargets.add(p);
                 }
-                while (!potentialTargets.isEmpty()) {
-                    Point nextTarget = potentialTargets.poll();
-                    if (isAvailable(nextTarget.id, players, chat_ids)) {
-                        Utils.printChatInitiation(self, nextTarget);
-                        return new Point(0.0, 0.0, nextTarget.id);
-                    }
+            }
+
+            while (!potentialTargets.isEmpty()) {
+                Point nextTarget = potentialTargets.poll();
+                if (isAvailable(nextTarget.id, players, chat_ids)) {
+                    Utils.printChatInitiation(self, nextTarget);
+                    return new Point(0.0, 0.0, nextTarget.id);
                 }
             }
 
