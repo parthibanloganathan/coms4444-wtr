@@ -41,10 +41,11 @@ public class Player implements wtr.sim.Player {
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
         people = new Person[n];
-	total_strangers = strangers+1;
-	total_wisdom = 10*strangers + 200;
+        total_strangers = strangers+1;
+        total_wisdom = 10*strangers + 200;
         prevLocations = new LinkedList<>();
-	expected_wisdom = total_wisdom / total_strangers;
+        expected_wisdom = total_wisdom / total_strangers;
+
         for (int i = 0; i < people.length; i++) {
             Person p = new Person();
             p.status = Person.Status.STRANGER;
@@ -83,12 +84,12 @@ public class Player implements wtr.sim.Player {
     }
 
     private void updateExpectation(int wisdom) { // expected wisdom value of a stranger
-	total_strangers--;
-	total_wisdom -= wisdom;
-	if (total_strangers == 0) 
-	    expected_wisdom = 0;
-	else 
-	    expected_wisdom = total_wisdom / total_strangers;
+        total_strangers--;
+        total_wisdom -= wisdom;
+        if (total_strangers == 0)
+            expected_wisdom = 0;
+        else
+            expected_wisdom = total_wisdom / total_strangers;
     }
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
@@ -101,12 +102,14 @@ public class Player implements wtr.sim.Player {
             j++;
         Point self = players[i];
         Point chat = players[j];
-	if (chat.id != self_id && people[chat.id].remaining_wisdom == -1) {
-	    if (wiser)
-		updateExpectation(more_wisdom + 1);
-	    else
-		updateExpectation(more_wisdom);
-	}
+
+        if (chat.id != self_id && people[chat.id].remaining_wisdom == -1) {
+            if (wiser)
+                updateExpectation(more_wisdom + 1);
+            else
+                updateExpectation(more_wisdom);
+        }
+
         people[chat.id].remaining_wisdom = more_wisdom;
         boolean chatting = (i != j);
         boolean prevLocationsFull = (prevLocations.size() == XTICKS);
@@ -158,14 +161,14 @@ public class Player implements wtr.sim.Player {
             while (!potentialTargets.isEmpty()) {
                 Point nextTarget = potentialTargets.poll();
                 if (isAvailable(nextTarget.id, players, chat_ids)) {
-		    if (!(people[nextTarget.id].remaining_wisdom == 0)){// && !people[nextTarget.id].has_left) {
-			Utils.printChatInitiation(self, nextTarget);
-			return new Point(0.0, 0.0, nextTarget.id);
-		    }
+                    if (!(people[nextTarget.id].remaining_wisdom == 0)){// && !people[nextTarget.id].has_left) {
+                        Utils.printChatInitiation(self, nextTarget);
+                        return new Point(0.0, 0.0, nextTarget.id);
+                    }
                 }
-		else { // if closest person is not available (is chatting), then he is unlikely to move, so we can't talk to anyone farther away
-		    break;
-		}
+                else { // if closest person is not available (is chatting), then he is unlikely to move, so we can't talk to anyone farther away
+                    break;
+                }
             }
 
             //Could not find a chat, so plan next move
@@ -186,9 +189,9 @@ public class Player implements wtr.sim.Player {
             if (p.id == self_id)
                 continue;
             int curPlayerRemWisdom = people[p.id].remaining_wisdom;
-	    if (curPlayerRemWisdom == -1) {
-		curPlayerRemWisdom = expected_wisdom;
-	    }
+            if (curPlayerRemWisdom == -1) {
+                curPlayerRemWisdom = expected_wisdom;
+            }
             if (curPlayerRemWisdom > maxWisdom && !people[p.id].has_left && isAvailable(p.id, players, chat_ids)) {
                 maxWisdom = curPlayerRemWisdom;
                 bestPlayer = p;
@@ -197,12 +200,12 @@ public class Player implements wtr.sim.Player {
         return bestPlayer;
     }
 
-    private Point moveToOtherPlayer(Point us, Point them) { 
-	double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION/2;
-	double dx = them.x - us.x;
-	double dy = them.y - us.y;
-	double theta = Math.atan2(dy, dx);
-	return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);	
+    private Point moveToOtherPlayer(Point us, Point them) {
+        double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION/2;
+        double dx = them.x - us.x;
+        double dy = them.y - us.y;
+        double theta = Math.atan2(dy, dx);
+        return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
     }
 
     private Point randomMove(Point self, int maxDist) {
@@ -231,5 +234,4 @@ public class Player implements wtr.sim.Player {
         }
         return i == j;
     }
-
 }
