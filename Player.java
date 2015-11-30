@@ -125,6 +125,9 @@ public class Player implements wtr.sim.Player {
         }
 
         if (chatting) {
+            if (Utils.dist(self, chat) > 0.52) {
+                return getCloser(self, chat);
+            }
             // attempt to continue chatting if there is more wisdom
             if (wiser) {
                 last_chatted = chat.id;
@@ -237,5 +240,17 @@ public class Player implements wtr.sim.Player {
             return false;
         }
         return i == j;
+    }
+
+    public Point getCloser(Point self, Point target){
+        //can't set to 0.5, if 0.5 the result distance may be 0.49
+        double targetDis = 0.52;
+        double dis = Utils.dist(self, target);
+        double x = (dis - targetDis) * (target.x - self.x) / dis;
+        double y = (dis - targetDis) * (target.y - self.y) / dis;
+//        System.out.println("self pos: " + self.x + ", " + self.y);
+//        System.out.println("target pos: " + target.x + ", " + target.y);
+//        System.out.println("move pos: " + x + ", " + y);
+        return new Point(x, y, self_id);
     }
 }
