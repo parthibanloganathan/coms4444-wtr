@@ -13,7 +13,8 @@ public class Player implements wtr.sim.Player {
     public static final int PLAYER_RANGE = 6;
     public static final int PATIENCE_IN_TICS = 5;
     public static final int XTICKS = 4;
-    public static final double MIN_RADIUS_FOR_CONVERSATION = 0.5;
+    public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
+    public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
 
     // Static vars
     private static int num_strangers;
@@ -33,6 +34,10 @@ public class Player implements wtr.sim.Player {
 
     private Queue<Point> prevLocations;
     private Point locationXTicksAgo;
+
+    private void println(String s) {
+        System.out.println(self_id + "\t" +"\t|\t" + s);
+    }
 
     public void init(int id, int[] friend_ids, int strangers) {
         time = 0;
@@ -102,6 +107,9 @@ public class Player implements wtr.sim.Player {
             j++;
         Point self = players[i];
         Point chat = players[j];
+        people[chat.id].remaining_wisdom = more_wisdom;
+        boolean chatting = (i != j);
+        boolean prevLocationsFull = (prevLocations.size() == XTICKS);
 
         if (chat.id != self_id && people[chat.id].remaining_wisdom == -1) {
             if (wiser)
@@ -109,10 +117,6 @@ public class Player implements wtr.sim.Player {
             else
                 updateExpectation(more_wisdom);
         }
-
-        people[chat.id].remaining_wisdom = more_wisdom;
-        boolean chatting = (i != j);
-        boolean prevLocationsFull = (prevLocations.size() == XTICKS);
 
         // Find location x ticks ago
         prevLocations.add(self);
@@ -136,7 +140,6 @@ public class Player implements wtr.sim.Player {
         else {
             // If player is stationery too long, move
             if (prevLocationsFull && Utils.pointsAreSame(locationXTicksAgo, self)) {
-                System.out.println("G2: Still too long: random move");
                 return randomMove(self, PLAYER_RANGE);
             }
             // See if other player left because we have no wisdom remaining to give
@@ -166,7 +169,8 @@ public class Player implements wtr.sim.Player {
                         return new Point(0.0, 0.0, nextTarget.id);
                     }
                 }
-                else { // if closest person is not available (is chatting), then he is unlikely to move, so we can't talk to anyone farther away
+                else { // if closest person is not available (is chatting), then he is unlikely to move,
+                // so we can't talk to anyone farther away
                     break;
                 }
             }
@@ -205,7 +209,7 @@ public class Player implements wtr.sim.Player {
         double dx = them.x - us.x;
         double dy = them.y - us.y;
         double theta = Math.atan2(dy, dx);
-        return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
+        return new Point(dis * Math.cos(theta), dis * Math.sin(theta), self_id);
     }
 
     private Point randomMove(Point self, int maxDist) {
