@@ -2,10 +2,7 @@ package wtr.g2;
 
 import wtr.sim.Point;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -104,7 +101,6 @@ public class Player implements wtr.sim.Player {
             Person friend = people[friend_id];
             friend.id = friend_id;
             friend.status = Person.Status.FRIEND;
-            //TODO: may not need both wisdom and remaining_wisdom
             friend.wisdom = 50;
             friend.remaining_wisdom = 50;
             last_chatted = -1;
@@ -133,7 +129,6 @@ public class Player implements wtr.sim.Player {
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
         if (time == GAME_TICS) {
-            System.out.println("time = " + time);
             try {
                 bw.write("numRandomMove: " + numRandomMoves + "\n");
                 bw.write("numChatContinuations: " + numChatContinuations + "\n");
@@ -230,7 +225,7 @@ public class Player implements wtr.sim.Player {
                 }
             }
 
-            //Could not find a chat, so plan next move
+//          Could not find a chat, so plan next move
             Point bestPlayer = chooseBestPlayer(players, chat_ids);
             if (bestPlayer != null) {
                 numMoveToOtherPlayer++;
@@ -238,6 +233,7 @@ public class Player implements wtr.sim.Player {
             }
         }
         //If all else fails
+        numRandomMoves++;
         return randomMove(self, PLAYER_RANGE);
     }
 
@@ -268,7 +264,6 @@ public class Player implements wtr.sim.Player {
     }
 
     private Point randomMove(Point self, int maxDist) {
-        numRandomMoves++;
         double dir, dx, dy;
         Point rand;
         do {
@@ -297,13 +292,9 @@ public class Player implements wtr.sim.Player {
 
     public Point getCloser(Point self, Point target){
         //can't set to 0.5, if 0.5 the result distance may be 0.49
-        double targetDis = 0.52;
         double dis = Utils.dist(self, target);
-        double x = (dis - targetDis) * (target.x - self.x) / dis;
-        double y = (dis - targetDis) * (target.y - self.y) / dis;
-//        System.out.println("self pos: " + self.x + ", " + self.y);
-//        System.out.println("target pos: " + target.x + ", " + target.y);
-//        System.out.println("move pos: " + x + ", " + y);
+        double x = (dis - MIN_RADIUS_FOR_CONVERSATION) * (target.x - self.x) / dis;
+        double y = (dis - MIN_RADIUS_FOR_CONVERSATION) * (target.y - self.y) / dis;
         return new Point(x, y, self_id);
     }
 }
