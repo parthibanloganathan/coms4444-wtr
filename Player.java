@@ -2,6 +2,10 @@ package wtr.g2;
 
 import wtr.sim.Point;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -13,6 +17,7 @@ public class Player implements wtr.sim.Player {
     public static final int PLAYER_RANGE = 6;
     public static final int PATIENCE_IN_TICS = 5;
     public static final int XTICKS = 4;
+    public static final int GAME_TICS = 1800;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
     public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
 
@@ -32,6 +37,28 @@ public class Player implements wtr.sim.Player {
     private int total_strangers;
     private int expected_wisdom;
 
+    // Test vars
+    private int numRandomMoves;
+    private int numChatContinuations;
+    private int numChatInitiations;
+    private int numMoveToOtherPlayer;
+    private int numMoveCloserToChat;
+    private int numMoveBecauseStationery;
+    private static File file;
+    private static FileWriter fw;
+    private static BufferedWriter bw;
+
+    static {
+        File file = new File("out.txt");
+        try {
+            fw = new FileWriter(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        bw = new BufferedWriter(fw);
+    }
+
     private Queue<Point> prevLocations;
     private Point locationXTicksAgo;
 
@@ -50,6 +77,12 @@ public class Player implements wtr.sim.Player {
         total_wisdom = 10*strangers + 200;
         prevLocations = new LinkedList<>();
         expected_wisdom = total_wisdom / total_strangers;
+
+        // test vars
+        numRandomMoves = 0;
+        numChatContinuations = 0;
+        numChatInitiations = 0;
+        numMoveToOtherPlayer = 0;
 
         for (int i = 0; i < people.length; i++) {
             Person p = new Person();
@@ -99,6 +132,20 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
+        if (time == GAME_TICS) {
+            System.out.println("time = " + time);
+            try {
+                bw.write("numRandomMove: " + numRandomMoves + "\n");
+                bw.write("numChatContinuations: " + numChatContinuations + "\n");
+                bw.write("numChatInitiations: " + numChatInitiations + "\n");
+                bw.write("numMoveToOtherPlayer: " + numMoveToOtherPlayer + "\n");
+                bw.write("numMoveCloserToChat: " + numMoveCloserToChat + "\n");
+                bw.write("numMoveBecauseStationery: " + numMoveBecauseStationery + "\n");
+                bw.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         // find where you are and who you chat with
         int i = 0, j = 0;
         while (players[i].id != self_id)
@@ -126,16 +173,19 @@ public class Player implements wtr.sim.Player {
 
         if (chatting) {
             if (Utils.dist(self, chat) > 0.52) {
+                numMoveCloserToChat++;
                 return getCloser(self, chat);
             }
             // attempt to continue chatting if there is more wisdom
             if (wiser) {
                 last_chatted = chat.id;
                 last_time_chatted = time;
+                numChatContinuations++;
                 return new Point(0.0, 0.0, chat.id);
             }
             else { //wait some time before leaving conversation
                 if (time - last_time_chatted < PATIENCE_IN_TICS) {
+                    numChatContinuations++;
                     return new Point(0.0, 0.0, chat.id);
                 }
             }
@@ -143,6 +193,7 @@ public class Player implements wtr.sim.Player {
         else {
             // If player is stationery too long, move
             if (prevLocationsFull && Utils.pointsAreSame(locationXTicksAgo, self)) {
+                numMoveBecauseStationery++;
                 return randomMove(self, PLAYER_RANGE);
             }
             // See if other player left because we have no wisdom remaining to give
@@ -169,6 +220,7 @@ public class Player implements wtr.sim.Player {
                 if (isAvailable(nextTarget.id, players, chat_ids)) {
                     if (!(people[nextTarget.id].remaining_wisdom == 0)){// && !people[nextTarget.id].has_left) {
                         Utils.printChatInitiation(self, nextTarget);
+                        numChatInitiations++;
                         return new Point(0.0, 0.0, nextTarget.id);
                     }
                 }
@@ -181,10 +233,10 @@ public class Player implements wtr.sim.Player {
             //Could not find a chat, so plan next move
             Point bestPlayer = chooseBestPlayer(players, chat_ids);
             if (bestPlayer != null) {
+                numMoveToOtherPlayer++;
                 return moveToOtherPlayer(self, bestPlayer);
             }
         }
-
         //If all else fails
         return randomMove(self, PLAYER_RANGE);
     }
@@ -216,6 +268,7 @@ public class Player implements wtr.sim.Player {
     }
 
     private Point randomMove(Point self, int maxDist) {
+        numRandomMoves++;
         double dir, dx, dy;
         Point rand;
         do {
