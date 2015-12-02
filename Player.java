@@ -14,7 +14,7 @@ public class Player implements wtr.sim.Player {
     public static final int PATIENCE_IN_TICS = 5;
     public static final int XTICKS = 4;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
-    public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
+    public static final double MAX_RADIUS_FOR_CONVERSATION = 1.995;
 
     // Static vars
     private static int num_strangers;
@@ -159,7 +159,7 @@ public class Player implements wtr.sim.Player {
                     continue;
 
                 double dis = Math.sqrt(Utils.dist(self, p));
-                if (dis <= 2.0 && dis >= 0.5) {
+                if (dis <= MAX_RADIUS_FOR_CONVERSATION && dis >= MIN_RADIUS_FOR_CONVERSATION) {
                     potentialTargets.add(p);
                 }
             }
@@ -179,7 +179,7 @@ public class Player implements wtr.sim.Player {
             }
 
             //Could not find a chat, so plan next move
-            Point bestPlayer = chooseBestPlayer(players, chat_ids);
+	    Point bestPlayer = chooseBestPlayer(players, chat_ids);
             if (bestPlayer != null) {
                 return moveToOtherPlayer(self, bestPlayer);
             }
@@ -192,6 +192,11 @@ public class Player implements wtr.sim.Player {
     private Point chooseBestPlayer(Point[] players, int[] chat_ids) {
         Point bestPlayer = null;
         int maxWisdom = 0;
+	Point us = null;
+	for (Point p : players) {
+	    if (p.id == self_id)
+		us = p;
+	}
         for (Point p : players) {
             if (p.id == self_id)
                 continue;
@@ -199,12 +204,29 @@ public class Player implements wtr.sim.Player {
             if (curPlayerRemWisdom == -1) {
                 curPlayerRemWisdom = expected_wisdom;
             }
-            if (curPlayerRemWisdom > maxWisdom && !people[p.id].has_left && isAvailable(p.id, players, chat_ids)) {
+            if (curPlayerRemWisdom > maxWisdom && !people[p.id].has_left && isAvailable(p.id, players, chat_ids) && emptyRect(us, p, players, chat_ids)) {
                 maxWisdom = curPlayerRemWisdom;
                 bestPlayer = p;
             }
         }
         return bestPlayer;
+    }
+
+    // check if point c is inside the rectangle given by a and b
+    private boolean insideRect(Point a, Point b, Point c) {
+	return (Math.abs(a.x - c.x) + Math.abs(c.x - b.x) == Math.abs(a.x - b.x) && Math.abs(a.y - c.y) + Math.abs(c.y - b.y) == Math.abs(a.y - b.y));
+    }
+
+    // check if the path to a target player is unobstructed
+    private boolean emptyRect(Point a, Point b, Point[] players, int[] chat_ids) {
+	Point median = new Point(0.5*a.x + 0.5*b.x, 0.5*a.y + 0.5*b.y, 0);
+	for (int i=0; i<players.length; i++) {
+	    if (players[i].id == a.id || players[i].id == b.id) {continue;}
+	    if (insideRect(a, b, players[i]) && isAvailable(players[i].id, players, chat_ids) || Utils.dist(median, players[i]) < 2*MIN_RADIUS_FOR_CONVERSATION) {
+		return false;
+	    }
+	}
+	return true;
     }
 
     private Point moveToOtherPlayer(Point us, Point them) {
