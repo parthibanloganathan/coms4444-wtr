@@ -13,18 +13,22 @@ public class Player implements wtr.sim.Player {
     // Constants
     public static final int PLAYER_RANGE = 6;
     public static final int PATIENCE_IN_TICS = 5;
+    public static final double OUTER_RADIUS = 2;
+    public static final double INNER_RADIUS = 0.5;
+    public static final int FRIEND_WISDOM = 50;
+    public static final int SOUL_MATE_WISDOM = 400;
+    public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
     public static final int XTICKS = 4;
-    public static final int GAME_TICS = 1800;
+    public static final int TOTAL_TIME = 1800;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
     public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
 
     // Static vars
-    private static int num_strangers;
-    private static int num_friends;
-    private static int n; // total number of people
     private static Random random = new Random();
 
-    // Player specific variables
+    private int num_strangers;
+    private int num_friends;
+    private int n; // total number of people
     private int self_id = -1;
     private int time;
     private Person[] people;
@@ -66,14 +70,18 @@ public class Player implements wtr.sim.Player {
     public void init(int id, int[] friend_ids, int strangers) {
         time = 0;
         self_id = id;
+
         num_strangers = strangers;
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+
         people = new Person[n];
-        total_strangers = strangers+1;
-        total_wisdom = 10*strangers + 200;
-        prevLocations = new LinkedList<>();
+
+        total_strangers = num_strangers + 1;
+        total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst strangers and soul mate
         expected_wisdom = total_wisdom / total_strangers;
+
+        prevLocations = new LinkedList<>();
 
         // test vars
         numRandomMoves = 0;
@@ -81,28 +89,33 @@ public class Player implements wtr.sim.Player {
         numChatInitiations = 0;
         numMoveToOtherPlayer = 0;
 
+        // Initialize strangers and soul mate
         for (int i = 0; i < people.length; i++) {
-            Person p = new Person();
-            p.status = Person.Status.STRANGER;
-            p.id = i;
-            p.remaining_wisdom = -1;
-            p.wisdom = -1;
-            p.has_left = false;
-            p.chatted = false;
-            people[i] = p;
+            Person stranger = new Person();
+            stranger.status = Person.Status.STRANGER;
+            stranger.id = i;
+            stranger.remaining_wisdom = expected_wisdom;
+            stranger.wisdom = expected_wisdom;
+            stranger.has_left = false;
+            stranger.chatted = false;
+            people[i] = stranger;
         }
 
+        // Initialize us
         Person us = people[self_id];
         us.status = Person.Status.US;
         us.wisdom = 0;
         us.remaining_wisdom = 0;
 
+        // Initialize friends
         for (int friend_id : friend_ids) {
             Person friend = people[friend_id];
             friend.id = friend_id;
             friend.status = Person.Status.FRIEND;
-            friend.wisdom = 50;
-            friend.remaining_wisdom = 50;
+            friend.wisdom = FRIEND_WISDOM;
+            friend.remaining_wisdom = FRIEND_WISDOM;
+            friend.has_left = false;
+            friend.chatted = false;
             last_chatted = -1;
         }
     }
@@ -128,7 +141,7 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-        if (time == GAME_TICS) {
+        if (time >= TOTAL_TIME) {
             try {
                 bw.write("numRandomMove: " + numRandomMoves + "\n");
                 bw.write("numChatContinuations: " + numChatContinuations + "\n");
@@ -141,7 +154,8 @@ public class Player implements wtr.sim.Player {
                 e.printStackTrace();
             }
         }
-        // find where you are and who you chat with
+
+        // Figure out where you are and who you chat with
         int i = 0, j = 0;
         while (players[i].id != self_id)
             i++;
@@ -204,8 +218,7 @@ public class Player implements wtr.sim.Player {
                 if (people[p.id].remaining_wisdom == 0)
                     continue;
 
-                double dis = Math.sqrt(Utils.dist(self, p));
-                if (dis <= 2.0 && dis >= 0.5) {
+                if (inRange(self, p)) {
                     potentialTargets.add(p);
                 }
             }
@@ -288,6 +301,11 @@ public class Player implements wtr.sim.Player {
             return false;
         }
         return i == j;
+    }
+
+    private boolean inRange(Point a, Point b) {
+        double d = Utils.dist(a, b);
+        return d >= INNER_RADIUS && d <= OUTER_RADIUS;
     }
 
     public Point getCloser(Point self, Point target){

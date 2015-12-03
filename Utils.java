@@ -8,7 +8,7 @@ public class Utils {
     public static double dist(Point a, Point b) {
         double dx = a.x - b.x;
         double dy = a.y - b.y;
-        return Math.sqrt(dx * dx + dy * dy);
+        return Math.hypot(dx, dy);
     }
 
     public static void printChatInitiation(Point a, Point b) {
