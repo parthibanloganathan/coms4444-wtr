@@ -155,9 +155,7 @@ public class Player implements wtr.sim.Player {
 
         // record known wisdom
         W[chat.id] = more_wisdom;
-        //TODO remove from blacklist
         // attempt to continue chatting if there is more wisdom
-        // System.out.println("wise: " + wiser + " selfid " + self_id + " chatid " + chat.id + " W " + W[chat.id]);
         updateStrangerWisdom();
 
         if (chat.id != preChatId)
@@ -202,7 +200,6 @@ public class Player implements wtr.sim.Player {
     }
 
     public void updateStrangerWisdom(){
-
         int cur_stranger_wisdom = (int) (strangerUnknowWisdom / numberOfStrangers);
         for(int i = 0; i < totalNumber; i++){
             if(friendSet.contains(i) || alreadyTalkedStrangers.contains(i) || i == self_id)
@@ -216,7 +213,6 @@ public class Player implements wtr.sim.Player {
         while(move.x + current.x > 20 || move.y + current.y > 20 || move.x + current.x < 0 || move.y + current.y < 0) {
             move = randomMove();
         }
-        // System.out.println("Self " + self_id + " Moving");
         return move;
     }
 
@@ -226,14 +222,6 @@ public class Player implements wtr.sim.Player {
         double dy = 6 * Math.sin(dir);
         preChatId = self_id;
         return new Point(dx, dy, self_id);
-    }
-
-    public boolean isAlone(Integer id, Point[] players, int[] chat_ids){
-        int i = 0, j = 0;
-        while (players[i].id != id) i++;
-        while (players[j].id != chat_ids[i]) j++;
-        return i == j;
-
     }
 
     public Point pickTarget1(Point[] players, int[] chat_ids){
@@ -256,7 +244,7 @@ public class Player implements wtr.sim.Player {
                 minDis = dd;
             }
         }
-        if(find && isAlone(targetId, players, chat_ids) && W[targetId] != 0){
+        if(find && isAvailable(targetId, players, chat_ids) && W[targetId] != 0){
             preChatId = targetId;
             return new Point(0.0, 0.0, targetId);
         }
@@ -267,24 +255,37 @@ public class Player implements wtr.sim.Player {
         int maxWisdom = 0;
         Point maxTarget = null;
 
-        if (distance > 6.0)
-            distance = 6.0;
+        if (distance > MIN_RADIUS_FOR_CONVERSATION)
+            distance = MIN_RADIUS_FOR_CONVERSATION;
 
         for (int i = 0; i < players.length; i++){
-
             // not conversing with anyone
             if (players[i].id != chat_ids[i])
                 continue;
             // swap with maxWisdom and maxTarget if wiser
             if (W[players[i].id] > maxWisdom) {
-
                 maxWisdom = W[players[i].id];
                 maxTarget = players[i];
             }
         }
-
-
         return maxTarget;
+    }
+
+    private boolean isAvailable(int id, Point[] players, int[] chat_ids){
+        int i = 0, j = 0;
+        while (players[i].id != id)
+            i++;
+        while (players[j].id != chat_ids[i])
+            j++;
+        return i == j;
+    }
+
+    private Point moveToOtherPlayer(Point us, Point them) {
+        double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION;
+        double dx = them.x - us.x;
+        double dy = them.y - us.y;
+        double theta = Math.atan2(dy, dx);
+        return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
     }
 
     public Point getCloser(Point self, Point target){
