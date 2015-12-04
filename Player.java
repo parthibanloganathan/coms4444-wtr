@@ -12,13 +12,13 @@ public class Player implements wtr.sim.Player {
 
     // Constants
     public static final int PLAYER_RANGE = 6;
-    public static final int PATIENCE_IN_TICS = 5;
+    public static final int PATIENCE_TIME = 5;
     public static final double OUTER_RADIUS = 2;
     public static final double INNER_RADIUS = 0.5;
     public static final int FRIEND_WISDOM = 50;
     public static final int SOUL_MATE_WISDOM = 400;
     public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
-    public static final int XTICKS = 4;
+    public static final int GIVE_UP_TIME = 4; // time before giving up and moving on from a non-productive situation
     public static final int TOTAL_TIME = 1800;
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
     public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
@@ -64,7 +64,7 @@ public class Player implements wtr.sim.Player {
     private Point locationXTicksAgo;
 
     private void println(String s) {
-        System.out.println(self_id + "\t" +"\t|\t" + s);
+        System.out.println(self_id + " : " +"  |  " + s);
     }
 
     public void init(int id, int[] friend_ids, int strangers) {
@@ -141,6 +141,8 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
+        last_time_chatted = time;
+
         if (time >= TOTAL_TIME) {
             try {
                 bw.write("numRandomMove: " + numRandomMoves + "\n");
@@ -157,17 +159,22 @@ public class Player implements wtr.sim.Player {
 
         // Figure out where you are and who you chat with
         int i = 0, j = 0;
-        while (players[i].id != self_id)
-            i++;
-        while (players[j].id != chat_ids[i])
-            j++;
-        Point self = players[i];
-        Point chat = players[j];
-        people[chat.id].remaining_wisdom = more_wisdom;
-        boolean chatting = (i != j);
-        boolean prevLocationsFull = (prevLocations.size() == XTICKS);
 
-        if (chat.id != self_id && people[chat.id].remaining_wisdom == -1) {
+        while (players[i].id != self_id) {
+            i++;
+        }
+
+        while (players[j].id != chat_ids[i]) {
+            j++;
+        }
+
+        Point self = players[i];
+        Point other_person = players[j];
+        people[other_person.id].remaining_wisdom = more_wisdom;
+        boolean chatting = (i != j);
+        boolean prevLocationsFull = (prevLocations.size() == GIVE_UP_TIME);
+
+        if (other_person.id != self_id && people[other_person.id].remaining_wisdom == -1) {
             if (wiser)
                 updateExpectation(more_wisdom + 1);
             else
@@ -181,21 +188,23 @@ public class Player implements wtr.sim.Player {
         }
 
         if (chatting) {
-            if (Utils.dist(self, chat) > 0.52) {
+            if (Utils.dist(self, other_person) > MIN_RADIUS_FOR_CONVERSATION) {
                 numMoveCloserToChat++;
-                return getCloser(self, chat);
+                return getCloserToPoint(self, other_person);
             }
             // attempt to continue chatting if there is more wisdom
             if (wiser) {
-                last_chatted = chat.id;
+                println("increase wisdom \n");
+                last_chatted = other_person.id;
                 last_time_chatted = time;
                 numChatContinuations++;
-                return new Point(0.0, 0.0, chat.id);
+                return new Point(0.0, 0.0, other_person.id);
             }
-            else { //wait some time before leaving conversation
-                if (time - last_time_chatted < PATIENCE_IN_TICS) {
+            else { // wait some time before leaving conversation
+                println("wait more \n");
+                if (time - last_time_chatted < PATIENCE_TIME) {
                     numChatContinuations++;
-                    return new Point(0.0, 0.0, chat.id);
+                    return new Point(0.0, 0.0, other_person.id);
                 }
             }
         }
@@ -247,7 +256,8 @@ public class Player implements wtr.sim.Player {
         }
         //If all else fails
         numRandomMoves++;
-        return randomMove(self, PLAYER_RANGE);
+        return new Point(0, 0, self_id); // don't move
+        //return randomMove(self, PLAYER_RANGE);
     }
 
     private Point chooseBestPlayer(Point[] players, int[] chat_ids) {
@@ -308,7 +318,7 @@ public class Player implements wtr.sim.Player {
         return d >= INNER_RADIUS && d <= OUTER_RADIUS;
     }
 
-    public Point getCloser(Point self, Point target){
+    public Point getCloserToPoint(Point self, Point target){
         //can't set to 0.5, if 0.5 the result distance may be 0.49
         double dis = Utils.dist(self, target);
         double x = (dis - MIN_RADIUS_FOR_CONVERSATION) * (target.x - self.x) / dis;

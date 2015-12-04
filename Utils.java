@@ -4,6 +4,7 @@ import wtr.sim.Point;
 
 public class Utils {
     public static int BOARD_SIDE = 20;
+    private static double EPSILON = 0.0001;
 
     public static double dist(Point a, Point b) {
         double dx = a.x - b.x;
@@ -16,7 +17,7 @@ public class Utils {
     }
 
     public static boolean pointsAreSame(Point a, Point b) {
-        return a.x == b.x && a.y == b.y;
+        return Math.abs(a.x - b.x) < EPSILON && Math.abs(a.y - b.y) < EPSILON;
     }
 
     public static boolean pointOutOfRange(Point p, double dx, double dy) {
