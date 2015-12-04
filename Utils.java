@@ -27,4 +27,9 @@ public class Utils {
         }
         return false;
     }
+
+    public static boolean inRange(Point a, Point b) {
+        double d = dist(a, b);
+        return d >= Player.INNER_RADIUS && d <= Player.OUTER_RADIUS;
+    }
 }

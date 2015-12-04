@@ -35,9 +35,7 @@ public class Player implements wtr.sim.Player {
     private Random random = new Random();
 
     private HashSet<Integer> friendSet;
-
     private int interfereThreshold = 5;
-
     private int interfereCount = 0;
     private Integer preChatId;
     private Point selfPlayer;
@@ -54,13 +52,10 @@ public class Player implements wtr.sim.Player {
     public void init(int id, int[] friend_ids, int strangers) {
         time = 0;
         self_id = id;
-
         num_strangers = strangers;
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
-
         people = new Person[n];
-
         total_strangers = num_strangers + 1;
         total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst strangers and soul mate
         expected_wisdom = total_wisdom / total_strangers;
@@ -191,29 +186,41 @@ public class Player implements wtr.sim.Player {
         }
     }
 
-    private Point randomMove(Point self) {
-        double dir, dx, dy;
-        Point rand;
-        do {
-            dir = random.nextDouble() * 2 * Math.PI;
-            dx = PLAYER_RANGE * Math.cos(dir);
-            dy = PLAYER_RANGE * Math.sin(dir);
-            rand = new Point(dx, dy, self_id);
-        } while (Utils.pointOutOfRange(self, dx, dy));
-        return rand;
+    /*
+        Tried using this instead of pickTarget1 but it decreased our score by 100 pts
+     */
+    public Point bestTarget(Point[] players, int[] chat_ids) {
+        PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(selfPlayer));
+        for (Point p : players) {
+            if (people[p.id].remaining_wisdom == 0)
+                continue;
+
+            if (Utils.inRange(selfPlayer, p)) {
+                potentialTargets.add(p);
+            }
+        }
+
+        while (!potentialTargets.isEmpty()) {
+            Point nextTarget = potentialTargets.poll();
+            if (isAvailable(nextTarget.id, players, chat_ids)) {
+                if (!(people[nextTarget.id].remaining_wisdom == 0)){
+                    return new Point(0.0, 0.0, nextTarget.id);
+                }
+            }
+        }
+        return null;
     }
 
     public Point pickTarget1(Point[] players, int[] chat_ids){
-        Point self = selfPlayer;
         double minDis = Double.MAX_VALUE;
         int targetId = 0;
         boolean find = false;
         for (Point p : players) {
-            if(p.id == self.id)
+            if(p.id == selfPlayer.id)
                 continue;
             // compute squared distance
-            double dx = self.x - p.x;
-            double dy = self.y - p.y;
+            double dx = selfPlayer.x - p.x;
+            double dy = selfPlayer.y - p.y;
             double dd = dx * dx + dy * dy;
             if(dd < .25)
                 return null;
@@ -255,6 +262,18 @@ public class Player implements wtr.sim.Player {
         while (players[j].id != chat_ids[i])
             j++;
         return i == j;
+    }
+
+    private Point randomMove(Point self) {
+        double dir, dx, dy;
+        Point rand;
+        do {
+            dir = random.nextDouble() * 2 * Math.PI;
+            dx = PLAYER_RANGE * Math.cos(dir);
+            dy = PLAYER_RANGE * Math.sin(dir);
+            rand = new Point(dx, dy, self_id);
+        } while (Utils.pointOutOfRange(self, dx, dy));
+        return rand;
     }
 
     private Point moveToOtherPlayer(Point us, Point them) {
