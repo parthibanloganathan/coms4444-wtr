@@ -89,6 +89,8 @@ public class Player implements wtr.sim.Player {
         numChatInitiations = 0;
         numMoveToOtherPlayer = 0;
 
+        last_time_chatted = time;
+
         // Initialize strangers and soul mate
         for (int i = 0; i < people.length; i++) {
             Person stranger = new Person();
@@ -141,7 +143,6 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-        last_time_chatted = time;
 
         if (time >= TOTAL_TIME) {
             try {
@@ -190,6 +191,7 @@ public class Player implements wtr.sim.Player {
         if (chatting) {
             if (Utils.dist(self, other_person) > MIN_RADIUS_FOR_CONVERSATION) {
                 numMoveCloserToChat++;
+                println("move closer \n");
                 return getCloserToPoint(self, other_person);
             }
             // attempt to continue chatting if there is more wisdom
@@ -221,7 +223,7 @@ public class Player implements wtr.sim.Player {
             }
 
             // try to initiate chat if previously not chatting
-            // Use a pq to sort potential targets by closest distance
+            // Use a priority queue to sort potential targets by closest distance
             PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(self));
             for (Point p : players) {
                 if (people[p.id].remaining_wisdom == 0)
