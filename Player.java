@@ -117,6 +117,7 @@ public class Player implements wtr.sim.Player {
         while (players[j].id != chat_ids[i]) j++;
         Point self = players[i];
         Point chat = players[j];
+        boolean chatting = (i != j);
 
         selfPlayer = self;
         //soul mate
@@ -124,8 +125,7 @@ public class Player implements wtr.sim.Player {
             alreadyTalkedStrangers.add(chat.id);
             soulmateID = chat.id;
             friendSet.add(chat.id);
-            // Keep track of soulmate, so you only subtract the 200 one time.
-            strangerUnknowWisdom -= 200;
+            strangerUnknowWisdom -= SOUL_MATE_WISDOM;
         } else if (chat.id != self_id && !friendSet.contains(chat.id) && !alreadyTalkedStrangers.contains(chat.id)) {
             alreadyTalkedStrangers.add(chat.id);
             // If they have 20 wisdom to share with us, on average this conversation will give us 10 wisdom
@@ -151,11 +151,10 @@ public class Player implements wtr.sim.Player {
         if (wiser || (friendSet.contains(chat.id) && people[chat.id].remaining_wisdom > 0)) {
             if (!wiser && interfereCount >= interfereThreshold) {
                 //If two friends has been interfered more than 5 times, then move away
-                return randomMoveInRoom(self);
+                return randomMove(self);
             } else {
                 preChatId = chat.id;
-                System.out.println("DIST: " + distance(self, chat));
-                if (distance(self, chat) > 0.6) {
+                if (Utils.dist(self, chat) > 0.6) {
                     Point ret = getCloserToTarget(self, chat);
                     return ret;
                 }
@@ -163,14 +162,13 @@ public class Player implements wtr.sim.Player {
             }
         }
         // try to initiate chat if previously not chatting
-        if (i == j) {
+        if (!chatting) {
             Point closestTarget = pickTarget1(players, chat_ids);
             if (closestTarget == null) {
-
                 Point maxWisdomTarget = pickTarget2(players, chat_ids);
                 if (maxWisdomTarget == null) {
                     // jump to random position
-                    return randomMoveInRoom(self);
+                    return randomMove(self);
                 } else {
                     // get closer to maxWisdomTarget
                     return getCloserToTarget(selfPlayer, maxWisdomTarget);
@@ -181,7 +179,7 @@ public class Player implements wtr.sim.Player {
 
         }
         // return a random move
-        return randomMoveInRoom(self);
+        return randomMove(self);
     }
 
     public void updateStrangerWisdom(){
@@ -193,20 +191,16 @@ public class Player implements wtr.sim.Player {
         }
     }
 
-    public Point randomMoveInRoom(Point current) {
-        Point move = randomMove();
-        while(move.x + current.x > 20 || move.y + current.y > 20 || move.x + current.x < 0 || move.y + current.y < 0) {
-            move = randomMove();
-        }
-        return move;
-    }
-
-    private Point randomMove(){
-        double dir = random.nextDouble() * 2 * Math.PI;
-        double dx = 6 * Math.cos(dir);
-        double dy = 6 * Math.sin(dir);
-        preChatId = self_id;
-        return new Point(dx, dy, self_id);
+    private Point randomMove(Point self) {
+        double dir, dx, dy;
+        Point rand;
+        do {
+            dir = random.nextDouble() * 2 * Math.PI;
+            dx = PLAYER_RANGE * Math.cos(dir);
+            dy = PLAYER_RANGE * Math.sin(dir);
+            rand = new Point(dx, dy, self_id);
+        } while (Utils.pointOutOfRange(self, dx, dy));
+        return rand;
     }
 
     public Point pickTarget1(Point[] players, int[] chat_ids){
@@ -241,13 +235,14 @@ public class Player implements wtr.sim.Player {
         Point maxTarget = null;
 
         for (int i = 0; i < players.length; i++){
+            Point player = players[i];
             // not conversing with anyone
-            if (players[i].id != chat_ids[i])
+            if (player.id != chat_ids[i])
                 continue;
             // swap with maxWisdom and maxTarget if wiser
-            if (people[players[i].id].remaining_wisdom > maxWisdom) {
-                maxWisdom = people[players[i].id].remaining_wisdom;
-                maxTarget = players[i];
+            if (people[player.id].remaining_wisdom > maxWisdom) {
+                maxWisdom = people[player.id].remaining_wisdom;
+                maxTarget = player;
             }
         }
         return maxTarget;
@@ -273,15 +268,9 @@ public class Player implements wtr.sim.Player {
     public Point getCloserToTarget(Point self, Point target){
         //can't set to 0.5, if 0.5 the result distance may be 0.49
         double targetDis = MIN_RADIUS_FOR_CONVERSATION;
-        double dis = distance(self, target);
+        double dis = Utils.dist(self, target);
         double x = (dis - targetDis) * (target.x - self.x) / dis;
         double y = (dis - targetDis) * (target.y - self.y) / dis;
         return new Point(x, y, self_id);
-    }
-
-    public double distance(Point p1, Point p2){
-        double dx = p1.x - p2.x;
-        double dy = p1.y - p2.y;
-        return Math.sqrt(dx * dx + dy * dy);
     }
 }
