@@ -19,8 +19,6 @@ public class Player implements wtr.sim.Player {
     public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
     public static final double MAX_RADIUS_FOR_CONVERSATION = 2.005;
 
-    // Static vars
-
     private int num_strangers;
     private int num_friends;
     private int n; // total number of people
@@ -31,16 +29,11 @@ public class Player implements wtr.sim.Player {
     private int total_strangers;
     private int expected_wisdom;
 
-    // random generator
     private Random random = new Random();
-
     private HashSet<Integer> friendSet;
-    private int interfereThreshold = 5;
     private int interfereCount = 0;
     private Integer preChatId;
     private Point selfPlayer;
-    private Integer numberOfStrangers;
-    private Integer totalNumber;
     private int soulmateID;
 
     private void println(String s) {
@@ -89,20 +82,14 @@ public class Player implements wtr.sim.Player {
 
         // From g5
         friendSet = new HashSet<Integer>();
-        // initialize the wisdom array
-        int N = friend_ids.length + strangers + 2;
-        totalNumber = N;
-        // initialize strangers' wisdom to 5.5 (avg wisdom for 1/3 + 1/3 + 1/3 configuration)
         for (int friend_id : friend_ids){
             friendSet.add(friend_id);
         }
         preChatId = self_id;
-        numberOfStrangers = strangers + 1;
         soulmateID = -1;
     }
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
-        System.out.println("G5");
         time++;
         int i = 0, j = 0;
         while (players[i].id != self_id) i++;
@@ -121,14 +108,13 @@ public class Player implements wtr.sim.Player {
         // record known wisdom
         people[chat.id].remaining_wisdom = more_wisdom;
         // attempt to continue chatting if there is more wisdom
-
         if (chat.id != preChatId)
             interfereCount = 0;
         if (!wiser && (friendSet.contains(chat.id) && people[chat.id].remaining_wisdom > 0)) {
             interfereCount++;
         }
         if (wiser || (friendSet.contains(chat.id) && people[chat.id].remaining_wisdom > 0)) {
-            if (!wiser && interfereCount >= interfereThreshold) {
+            if (!wiser && interfereCount >= PATIENCE_TIME) {
                 //If two friends has been interfered more than 5 times, then move away
                 return randomMove(self);
             } else {
@@ -249,14 +235,6 @@ public class Player implements wtr.sim.Player {
             rand = new Point(dx, dy, self_id);
         } while (Utils.pointOutOfRange(self, dx, dy));
         return rand;
-    }
-
-    private Point moveToOtherPlayer(Point us, Point them) {
-        double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION;
-        double dx = them.x - us.x;
-        double dy = them.y - us.y;
-        double theta = Math.atan2(dy, dx);
-        return new Point(us.x + dis * Math.cos(theta), us.y + dis * Math.sin(theta), self_id);
     }
 
     public Point getCloserToTarget(Point self, Point target){
