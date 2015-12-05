@@ -1,0 +1,5 @@
+100 players, 10 of each:
+java wtr.sim.Simulator -g g1 g2 g3 g4 g5 g6 g7 g8 g9 g0 -f 5 -s 93
+
+Testing with ourselves:
+java wtr.sim.Simulator -g g2 -f 5 -s 15

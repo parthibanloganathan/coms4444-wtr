@@ -11,7 +11,7 @@ public class Person {
     public enum Status{US,STRANGER, FRIEND, SOULMATE};
 
     public int id;
-    public int wisdom = -1;
+    public int wisdom;
     public Status status; // stranger, friend or soul mate
     public Point last_known_position;
     public boolean chatted; // have we chatted with them before
