@@ -31,10 +31,9 @@ public class Player implements wtr.sim.Player {
 
     private Random random = new Random();
     private HashSet<Integer> friendSet;
-    private int interfereCount = 0;
-    private Integer preChatId;
     private Point selfPlayer;
     private int soulmateID;
+    private int last_time_wisdom_gained;
 
     private void println(String s) {
         System.out.println(self_id + " : " +"  |  " + s);
@@ -85,7 +84,6 @@ public class Player implements wtr.sim.Player {
         for (int friend_id : friend_ids){
             friendSet.add(friend_id);
         }
-        preChatId = self_id;
         soulmateID = -1;
     }
 
@@ -108,26 +106,19 @@ public class Player implements wtr.sim.Player {
         // record known wisdom
         people[chat.id].remaining_wisdom = more_wisdom;
         // attempt to continue chatting if there is more wisdom
-        if (chat.id != preChatId)
-            interfereCount = 0;
-        if (!wiser && (friendSet.contains(chat.id) && people[chat.id].remaining_wisdom > 0)) {
-            interfereCount++;
-        }
-        if (wiser || (friendSet.contains(chat.id) && people[chat.id].remaining_wisdom > 0)) {
-            if (!wiser && interfereCount >= PATIENCE_TIME) {
-                //If two friends has been interfered more than 5 times, then move away
-                return randomMove(self);
-            } else {
-                preChatId = chat.id;
-                if (Utils.dist(self, chat) > 0.6) {
-                    Point ret = getCloserToTarget(self, chat);
-                    return ret;
-                }
+        if (chatting) {
+            if (Utils.dist(self, chat) > 0.6) {
+                return getCloserToTarget(self, chat);
+            }
+            if (wiser && people[chat.id].remaining_wisdom > 0) {
+                last_time_wisdom_gained = time;
+                return new Point(0.0, 0.0, chat.id);
+            }
+            else if (!wiser && time - last_time_wisdom_gained < PATIENCE_TIME) {
                 return new Point(0.0, 0.0, chat.id);
             }
         }
-        // try to initiate chat if previously not chatting
-        if (!chatting) {
+        else { // try to initiate chat if previously not chatting
             Point closestTarget = pickTarget1(players, chat_ids);
             if (closestTarget == null) {
                 Point maxWisdomTarget = pickTarget2(players, chat_ids);
@@ -192,7 +183,6 @@ public class Player implements wtr.sim.Player {
             }
         }
         if(find && isAvailable(targetId, players, chat_ids) && people[targetId].remaining_wisdom != 0){
-            preChatId = targetId;
             return new Point(0.0, 0.0, targetId);
         }
         return null;
