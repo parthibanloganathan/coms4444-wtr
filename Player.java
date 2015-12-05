@@ -30,7 +30,6 @@ public class Player implements wtr.sim.Player {
     private int expected_wisdom;
 
     private Random random = new Random();
-    private HashSet<Integer> friendSet;
     private Point selfPlayer;
     private int soulmateID;
     private int last_time_wisdom_gained;
@@ -79,11 +78,6 @@ public class Player implements wtr.sim.Player {
             friend.chatted = false;
         }
 
-        // From g5
-        friendSet = new HashSet<Integer>();
-        for (int friend_id : friend_ids){
-            friendSet.add(friend_id);
-        }
         soulmateID = -1;
     }
 
@@ -98,12 +92,10 @@ public class Player implements wtr.sim.Player {
 
         selfPlayer = self;
         //soul mate
-        if (more_wisdom > 50 && !friendSet.contains(chat.id) && soulmateID < 0) {
+        if (more_wisdom > 50) {
             soulmateID = chat.id;
-            friendSet.add(chat.id);
         }
 
-        // record known wisdom
         people[chat.id].remaining_wisdom = more_wisdom;
         // attempt to continue chatting if there is more wisdom
         if (chatting) {
@@ -124,7 +116,7 @@ public class Player implements wtr.sim.Player {
                 return closestTarget;
             }
 
-            Point bestTargetToMoveTo = bestTargetToMoveTo(players, chat_ids);
+            Point bestTargetToMoveTo = bestTargetToMoveTo(players);
             if (bestTargetToMoveTo != null) {
                 return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
             }
@@ -199,7 +191,7 @@ public class Player implements wtr.sim.Player {
         return maxTarget;
     }
 
-    private Point bestTargetToMoveTo(Point[] players, int[] chat_ids) {
+    private Point bestTargetToMoveTo(Point[] players) {
         Point bestPlayer = null;
         int maxWisdom = 0;
         for (Point p : players) {
