@@ -119,11 +119,10 @@ public class Player implements wtr.sim.Player {
             }
         }
         else { // try to initiate chat if previously not chatting
-            Point closestTarget = pickTarget1(players, chat_ids);
+            Point closestTarget = bestTarget(players, chat_ids);
             if (closestTarget == null) {
                 Point maxWisdomTarget = pickTarget2(players, chat_ids);
                 if (maxWisdomTarget == null) {
-                    // jump to random position
                     return randomMove(self);
                 } else {
                     // get closer to maxWisdomTarget
@@ -144,7 +143,7 @@ public class Player implements wtr.sim.Player {
     public Point bestTarget(Point[] players, int[] chat_ids) {
         PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(selfPlayer));
         for (Point p : players) {
-            if (people[p.id].remaining_wisdom == 0)
+            if (p.id == self_id || people[p.id].remaining_wisdom == 0)
                 continue;
 
             if (Utils.inRange(selfPlayer, p)) {
