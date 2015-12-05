@@ -120,18 +120,15 @@ public class Player implements wtr.sim.Player {
         }
         else { // try to initiate chat if previously not chatting
             Point closestTarget = bestTarget(players, chat_ids);
-            if (closestTarget == null) {
-                Point maxWisdomTarget = chooseBestPlayer(players, chat_ids);
-                if (maxWisdomTarget == null) {
-                    return randomMove(self);
-                } else {
-                    // get closer to maxWisdomTarget
-                    return getCloserToTarget(selfPlayer, maxWisdomTarget);
-                }
-            } else {
+            if (closestTarget != null) {
                 return closestTarget;
             }
 
+            Point bestTargetToMoveTo = bestTargetToMoveTo(players, chat_ids);
+            if (bestTargetToMoveTo != null) {
+                return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
+            }
+            return randomMove(self);
         }
         // return a random move
         return randomMove(self);
@@ -202,7 +199,7 @@ public class Player implements wtr.sim.Player {
         return maxTarget;
     }
 
-    private Point chooseBestPlayer(Point[] players, int[] chat_ids) {
+    private Point bestTargetToMoveTo(Point[] players, int[] chat_ids) {
         Point bestPlayer = null;
         int maxWisdom = 0;
         for (Point p : players) {
