@@ -121,7 +121,7 @@ public class Player implements wtr.sim.Player {
         else { // try to initiate chat if previously not chatting
             Point closestTarget = bestTarget(players, chat_ids);
             if (closestTarget == null) {
-                Point maxWisdomTarget = pickTarget2(players, chat_ids);
+                Point maxWisdomTarget = chooseBestPlayer(players, chat_ids);
                 if (maxWisdomTarget == null) {
                     return randomMove(self);
                 } else {
@@ -153,10 +153,8 @@ public class Player implements wtr.sim.Player {
 
         while (!potentialTargets.isEmpty()) {
             Point nextTarget = potentialTargets.poll();
-            if (isAvailable(nextTarget.id, players, chat_ids)) {
-                if (!(people[nextTarget.id].remaining_wisdom == 0)){
-                    return new Point(0.0, 0.0, nextTarget.id);
-                }
+            if (isAvailable(nextTarget.id, players, chat_ids) && people[nextTarget.id].remaining_wisdom != 0) {
+                return new Point(0.0, 0.0, nextTarget.id);
             }
         }
         return null;
@@ -196,13 +194,27 @@ public class Player implements wtr.sim.Player {
             // not conversing with anyone
             if (player.id != chat_ids[i])
                 continue;
-            // swap with maxWisdom and maxTarget if wiser
             if (people[player.id].remaining_wisdom > maxWisdom) {
                 maxWisdom = people[player.id].remaining_wisdom;
                 maxTarget = player;
             }
         }
         return maxTarget;
+    }
+
+    private Point chooseBestPlayer(Point[] players, int[] chat_ids) {
+        Point bestPlayer = null;
+        int maxWisdom = 0;
+        for (Point p : players) {
+            if (p.id == self_id)
+                continue;
+            int curPlayerRemWisdom = people[p.id].remaining_wisdom;
+            if (curPlayerRemWisdom > maxWisdom) {
+                maxWisdom = curPlayerRemWisdom;
+                bestPlayer = p;
+            }
+        }
+        return bestPlayer;
     }
 
     private boolean isAvailable(int id, Point[] players, int[] chat_ids){
