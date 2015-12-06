@@ -149,48 +149,6 @@ public class Player implements wtr.sim.Player {
         return null;
     }
 
-    public Point pickTarget1(Point[] players, int[] chat_ids){
-        double minDis = Double.MAX_VALUE;
-        int targetId = 0;
-        boolean find = false;
-        for (Point p : players) {
-            if(p.id == selfPlayer.id)
-                continue;
-            // compute squared distance
-            double dx = selfPlayer.x - p.x;
-            double dy = selfPlayer.y - p.y;
-            double dd = dx * dx + dy * dy;
-            if(dd < .25)
-                return null;
-            if (dd >= 0.25 && dd <= 4.0 && dd < minDis){
-                find = true;
-                targetId = p.id;
-                minDis = dd;
-            }
-        }
-        if(find && isAvailable(targetId, players, chat_ids) && people[targetId].remaining_wisdom != 0){
-            return new Point(0.0, 0.0, targetId);
-        }
-        return null;
-    }
-
-    public Point pickTarget2(Point[] players, int[] chat_ids){
-        int maxWisdom = 0;
-        Point maxTarget = null;
-
-        for (int i = 0; i < players.length; i++){
-            Point player = players[i];
-            // not conversing with anyone
-            if (player.id != chat_ids[i])
-                continue;
-            if (people[player.id].remaining_wisdom > maxWisdom) {
-                maxWisdom = people[player.id].remaining_wisdom;
-                maxTarget = player;
-            }
-        }
-        return maxTarget;
-    }
-
     private Point bestTargetToMoveTo(Point[] players) {
         Point bestPlayer = null;
         int maxWisdom = 0;
