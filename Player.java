@@ -106,7 +106,7 @@ public class Player implements wtr.sim.Player {
                 last_time_wisdom_gained = time;
                 return new Point(0.0, 0.0, chat.id);
             }
-            else if (!wiser && time - last_time_wisdom_gained < PATIENCE_TIME) {
+            else if (!wiser && time - last_time_wisdom_gained < wisdomDependentWaitTime(chat)) {
                 return new Point(0.0, 0.0, chat.id);
             }
         }
@@ -192,5 +192,9 @@ public class Player implements wtr.sim.Player {
         double x = (dis - targetDis) * (target.x - self.x) / dis;
         double y = (dis - targetDis) * (target.y - self.y) / dis;
         return new Point(x, y, self_id);
+    }
+
+    public int wisdomDependentWaitTime(Point chat) {
+        return (int) Math.round(2 + people[chat.id].remaining_wisdom / 20);
     }
 }
