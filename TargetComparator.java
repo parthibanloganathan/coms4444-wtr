@@ -10,16 +10,16 @@ public class TargetComparator implements Comparator<Point> {
 
     Point self;
     public TargetComparator(Point self) {
-        this.self = self;
+        this.self = new Point(self.x, self.y, self.id);
     }
 
     @Override
     public int compare(Point o1, Point o2) {
         double o1Dist = Utils.dist(self, o1);
         double o2Dist = Utils.dist(self, o2);
-        if (o1Dist < o2Dist)
+        if (o1Dist > o2Dist)
             return 1;
-        else if (o1Dist > o2Dist)
+        else if (o1Dist < o2Dist)
             return -1;
         return 0;
     }
