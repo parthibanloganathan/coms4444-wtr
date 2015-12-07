@@ -52,7 +52,7 @@ public class Player implements wtr.sim.Player {
     private HashSet<Integer> avoid_list = new HashSet<>();
 
     private void println(String s) {
-        System.out.println(self_id + " : " + "  |  " + s);
+//        System.out.println(self_id + " : " + "  |  " + s);
     }
 
     public void init(int id, int[] friend_ids, int strangers) {
@@ -273,7 +273,7 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-        if (coop) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
+        if (coop && time < 1800 / 6) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
         int i = 0;
         int j = 0;
         while (players[i].id != self_id) {
