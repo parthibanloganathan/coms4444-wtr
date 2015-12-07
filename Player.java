@@ -122,6 +122,8 @@ public class Player implements wtr.sim.Player {
 
         // Attempt to continue chatting if there is more wisdom
         if (chatting) {
+            last_person_chatted_id = chat.id;
+
             // Move closer to prevent others form interrupting
             if (Utils.dist(self, chat) > RADIUS_TO_MAINTAIN) {
                 return getCloserToTarget(self, chat);
@@ -140,6 +142,7 @@ public class Player implements wtr.sim.Player {
             if (last_person_chatted_id != -1 &&
                     (people[last_person_chatted_id].remaining_wisdom == 9 ||
                             people[last_person_chatted_id].remaining_wisdom == 19) ) {
+                println("stopped talking to us with: " + people[last_person_chatted_id].remaining_wisdom);
                 people[last_person_chatted_id].has_left = true;
                 last_person_chatted_id = -1;
             }
