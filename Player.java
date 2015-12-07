@@ -47,6 +47,7 @@ public class Player implements wtr.sim.Player {
     private int soul_mate_id = -1;
     private int last_person_chatted_id = -1;
     private int last_time_wisdom_gained;
+    private int times_nothing_to_do = 0;
 
     private HashSet<Integer> avoid_list = new HashSet<>();
 
@@ -124,6 +125,7 @@ public class Player implements wtr.sim.Player {
     }
 
     public Point coopPlay(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
+	if (wiser) {last_time_wisdom_gained = time;}
         int i = 0, j = 0;
         while (players[i].id != self_id)
             i++;
@@ -171,6 +173,7 @@ public class Player implements wtr.sim.Player {
         }
         // if only one person in range and has wisdom, talk to person. if stacked, person with lower ID moves farther away to talk
         if (count == 1 && wisdom > 0) {
+	    times_nothing_to_do = 0;	    
             if (stackedCount == 0) {
                 println("time:" + time + " - id:" + self_id + ": talk to " + id);
                 return new Point(0,0,id);
@@ -199,6 +202,7 @@ public class Player implements wtr.sim.Player {
         }
         // if have wisdom in range, move with probability (num people - )2 / num people
         if (wisdom > 0 && count > 1) {
+	    times_nothing_to_do = 0;	    
             if (thisRandom.nextDouble() > ((double)count - 1.0) / (double)count + 1.0) {
                 println("time:" + time + " - id:" + self_id + ": too many people, chosen to stay");
                 return new Point(0,0,id);
@@ -233,14 +237,17 @@ public class Player implements wtr.sim.Player {
             }
         }
         if (emptySlots.size() > 0 && (slots.size() == 0 || thisRandom.nextDouble() < 0.111111111)) { // if no available slots, or with probability 1/9, create a new slot
+	    times_nothing_to_do = 0;	    
             println("time:" + time + " - id:" + self_id + ": moving to empty slot");
             nextToWall = true;
             return migrateTo(emptySlots.get(thisRandom.nextInt(emptySlots.size())),self);
         }
         if (slots.size() == 0) {
             println("time:" + time + " - id:" + self_id + ": nothing to do");
+	    if (++times_nothing_to_do > 10) {coop = false;}
             return new Point(0,0,self_id);
         }
+	times_nothing_to_do = 0;	
         int r = thisRandom.nextInt(slots.size());
         Point target = slots.get(r);
         for (Point p:players) {
@@ -265,8 +272,8 @@ public class Player implements wtr.sim.Player {
     }
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
-        if (coop) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
         time++;
+        if (coop) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
         int i = 0;
         int j = 0;
         while (players[i].id != self_id) {
