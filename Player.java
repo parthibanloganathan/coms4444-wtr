@@ -8,11 +8,14 @@ public class Player implements wtr.sim.Player {
 
     // Constants
     public static final int PLAYER_RANGE = 6;
-    public static final int PATIENCE_IN_TICS = 2;
-    public static final double MIN_RADIUS_FOR_CONVERSATION = 0.505; // slight offset for floating point stuff
-    public static final double MAX_RADIUS_FOR_CONVERSATION = 1.995;
     public static final double GAP_BETWEEN_PAIRS = 0.515;
-    public static final double MARGIN = MIN_RADIUS_FOR_CONVERSATION * 0.5 + GAP_BETWEEN_PAIRS * 0.5;
+    public static final double OUTER_RADIUS = 1.995; // 2 but account for floating point error
+    public static final double INNER_RADIUS = 0.505; // 0.5 but account for floating point error
+    public static final double RADIUS_TO_MAINTAIN = 0.6;
+    public static final int FRIEND_WISDOM = 50;
+    public static final int SOUL_MATE_WISDOM = 400;
+    public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
+    public static final double MARGIN = INNER_RADIUS * 0.5 + GAP_BETWEEN_PAIRS * 0.5;
     private static final int salt = 3456203; //change to a different random integer for every submission
 
     // Static vars
@@ -20,14 +23,6 @@ public class Player implements wtr.sim.Player {
     private Random thisRandom = null;
     private Point offset;
     private Point offsetPerp;
-
-    // Player specific variables
-    public static final double OUTER_RADIUS = 1.995; // 2 but account for floating point error
-    public static final double INNER_RADIUS = 0.505; // 0.5 but account for floating point error
-    public static final double RADIUS_TO_MAINTAIN = 0.6;
-    public static final int FRIEND_WISDOM = 50;
-    public static final int SOUL_MATE_WISDOM = 400;
-    public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
 
     private int num_strangers;
     private int num_friends;
@@ -109,19 +104,19 @@ public class Player implements wtr.sim.Player {
         switch (wall) {
             case 0:
                 offset = new Point(GAP_BETWEEN_PAIRS,0, self_id);
-                offsetPerp = new Point(0,MIN_RADIUS_FOR_CONVERSATION,self_id);
+                offsetPerp = new Point(0,INNER_RADIUS,self_id);
                 return new Point(jointRandom.nextDouble() * cutoff, 0.001, self_id);
             case 1:
                 offset = new Point(0,GAP_BETWEEN_PAIRS,self_id);
-                offsetPerp = new Point(-MIN_RADIUS_FOR_CONVERSATION,0,self_id);
+                offsetPerp = new Point(-INNER_RADIUS,0,self_id);
                 return new Point(19.999, jointRandom.nextDouble() * cutoff, self_id);
             case 2:
                 offset = new Point(GAP_BETWEEN_PAIRS,0,self_id);
-                offsetPerp = new Point(0,-MIN_RADIUS_FOR_CONVERSATION,self_id);
+                offsetPerp = new Point(0,-INNER_RADIUS,self_id);
                 return new Point(jointRandom.nextDouble() * cutoff, 19.999, self_id);
             case 3:
                 offset = new Point(0,GAP_BETWEEN_PAIRS,self_id);
-                offsetPerp = new Point(MIN_RADIUS_FOR_CONVERSATION,0,self_id);
+                offsetPerp = new Point(INNER_RADIUS,0,self_id);
                 return new Point(0.001, jointRandom.nextDouble() * cutoff, self_id);
             default:
                 return null;
@@ -420,32 +415,6 @@ public class Player implements wtr.sim.Player {
         } else {
             return bestIgnoredPlayer;
         }
-    }
-
-
-    // check if point c is inside the rectangle given by a and b
-    private boolean insideRect(Point a, Point b, Point c) {
-        return (Math.abs(a.x - c.x) + Math.abs(c.x - b.x) == Math.abs(a.x - b.x) && Math.abs(a.y - c.y) + Math.abs(c.y - b.y) == Math.abs(a.y - b.y));
-    }
-
-    // check if the path to a target player is unobstructed
-    private boolean emptyRect(Point a, Point b, Point[] players, int[] chat_ids) {
-        Point median = new Point(0.5*a.x + 0.5*b.x, 0.5*a.y + 0.5*b.y, 0);
-        for (int i=0; i<players.length; i++){
-            if (players[i].id == a.id || players[i].id == b.id) {continue;}
-            if (insideRect(a, b, players[i]) && isAvailable(players[i].id, players, chat_ids) || Utils.dist(median, players[i]) < 2*MIN_RADIUS_FOR_CONVERSATION) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private Point moveToOtherPlayer(Point us, Point them) {
-        double dis = Utils.dist(us, them)/2 - MIN_RADIUS_FOR_CONVERSATION/2;
-        double dx = them.x - us.x;
-        double dy = them.y - us.y;
-        double theta = Math.atan2(dy, dx);
-        return new Point(dis * Math.cos(theta), dis * Math.sin(theta), self_id);
     }
 
     /**
