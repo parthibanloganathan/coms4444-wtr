@@ -197,6 +197,10 @@ public class Player implements wtr.sim.Player {
         }
         // if alone in slot, wait for someone else to come
         if (count == 0 && thisRandom.nextDouble() > 0.11111111) {
+	    if (times_nothing_to_do++ > 10) {
+		coop = false;
+		return migrateTo(new Point(10,10,self_id), self);
+	    }
             println("time:" + time + " - id:" + self_id + ": alone, waiting");
             return new Point(0,0,id);
         }
@@ -237,14 +241,16 @@ public class Player implements wtr.sim.Player {
             }
         }
         if (emptySlots.size() > 0 && (slots.size() == 0 || thisRandom.nextDouble() < 0.111111111)) { // if no available slots, or with probability 1/9, create a new slot
-	    times_nothing_to_do = 0;	    
             println("time:" + time + " - id:" + self_id + ": moving to empty slot");
             nextToWall = true;
             return migrateTo(emptySlots.get(thisRandom.nextInt(emptySlots.size())),self);
         }
         if (slots.size() == 0) {
             println("time:" + time + " - id:" + self_id + ": nothing to do");
-	    if (++times_nothing_to_do > 10) {coop = false;}
+	    if (++times_nothing_to_do > 10) {
+		coop = false;
+		return migrateTo(new Point(10,10,self_id),self);
+	    }
             return new Point(0,0,self_id);
         }
 	times_nothing_to_do = 0;	
