@@ -10,7 +10,6 @@ public class TargetComparator implements Comparator<Point> {
 
     Point self;
     public TargetComparator(Point self) {
-//        System.out.println("SELF in comparator: " + self.id);
         this.self = new Point(self.x, self.y, self.id);
     }
 
