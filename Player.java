@@ -16,6 +16,7 @@ public class Player implements wtr.sim.Player {
     public static final int SOUL_MATE_WISDOM = 400;
     public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
     public static final double MARGIN = INNER_RADIUS * 0.5 + GAP_BETWEEN_PAIRS * 0.5;
+    private static final int COOPLAY_THRESHOLD = 20;
     private static final int salt = 3456203; //change to a different random integer for every submission
 
     // Static vars
@@ -197,9 +198,9 @@ public class Player implements wtr.sim.Player {
         }
         // if alone in slot, wait for someone else to come
         if (count == 0 && thisRandom.nextDouble() > 0.11111111) {
-	    if (times_nothing_to_do++ > 10) {
-		coop = false;
-		return migrateTo(new Point(10,10,self_id), self);
+	    if (times_nothing_to_do++ > COOPLAY_THRESHOLD) {
+            coop = false;
+            return migrateTo(new Point(10,10,self_id), self);
 	    }
             println("time:" + time + " - id:" + self_id + ": alone, waiting");
             return new Point(0,0,id);
@@ -247,13 +248,13 @@ public class Player implements wtr.sim.Player {
         }
         if (slots.size() == 0) {
             println("time:" + time + " - id:" + self_id + ": nothing to do");
-	    if (++times_nothing_to_do > 10) {
-		coop = false;
-		return migrateTo(new Point(10,10,self_id),self);
+	    if (++times_nothing_to_do > COOPLAY_THRESHOLD) {
+            coop = false;
+            return migrateTo(new Point(10,10,self_id),self);
 	    }
             return new Point(0,0,self_id);
         }
-	times_nothing_to_do = 0;	
+        times_nothing_to_do = 0;
         int r = thisRandom.nextInt(slots.size());
         Point target = slots.get(r);
         for (Point p:players) {
@@ -279,7 +280,7 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-        if (coop && time < 1800 / 6) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
+        if (coop) {return coopPlay(players, chat_ids, wiser, more_wisdom);}
         int i = 0;
         int j = 0;
         while (players[i].id != self_id) {
