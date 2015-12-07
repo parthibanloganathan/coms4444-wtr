@@ -164,7 +164,7 @@ public class Player implements wtr.sim.Player {
 		    numInstances++;
 		}
 	    }
-	    numSlots = (int)Math.round(2.0 * (double)numInstances / 3.0);
+	    numSlots = (int)Math.ceil(3.0 * (double)numInstances / 4.0);
 	}
 	//count number of people with range
 	int count = 0;
