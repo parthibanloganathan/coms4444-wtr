@@ -14,7 +14,6 @@ public class Player implements wtr.sim.Player {
     public static final int FRIEND_WISDOM = 50;
     public static final int SOUL_MATE_WISDOM = 400;
     public static final int AVG_STRANGER_WISDOM = 10; // (0n/3 + 10n/3 + 20n/3)/n = 10
-    public static final int TOTAL_TIME = 1800;
 
     private int num_strangers;
     private int num_friends;
@@ -23,7 +22,6 @@ public class Player implements wtr.sim.Player {
     private int time;
     private Person[] people;
     private int total_wisdom;
-    private int total_strangers;
     private int total_unknowns;
     private int expected_wisdom;
 
@@ -33,10 +31,12 @@ public class Player implements wtr.sim.Player {
     private int last_person_chatted_id = -1;
     private int last_time_wisdom_gained;
 
-    private HashSet<Integer> avoid_list = new HashSet<>();
+    private int stranger_counter = 0;
+    private int soulmate_counter = 0;
+    private int plays = 0;
 
     private void println(String s) {
-        System.out.println(self_id + " : " +"  |  " + s);
+        //System.out.println(s);
     }
 
     public void init(int id, int[] friend_ids, int strangers) {
@@ -46,8 +46,7 @@ public class Player implements wtr.sim.Player {
         num_friends = friend_ids.length;
         n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
         people = new Person[n];
-        total_strangers = num_strangers + 1;
-        total_unknowns = total_strangers;
+        total_unknowns = num_strangers + 1; // strangers + soul mate
         total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst unknowns
         expected_wisdom = total_wisdom / total_unknowns;
 
@@ -59,15 +58,18 @@ public class Player implements wtr.sim.Player {
             stranger.remaining_wisdom = expected_wisdom;
             stranger.wisdom = expected_wisdom;
             stranger.has_left = false;
-            stranger.chatted = false;
+            stranger.known = false;
             people[i] = stranger;
         }
 
         // Initialize us
         Person us = people[self_id];
         us.status = Person.Status.US;
+        us.id = self_id;
         us.wisdom = 0;
         us.remaining_wisdom = 0;
+        us.has_left = true;
+        us.known = true;
 
         // Initialize friends
         for (int friend_id : friend_ids) {
@@ -77,7 +79,7 @@ public class Player implements wtr.sim.Player {
             friend.wisdom = FRIEND_WISDOM;
             friend.remaining_wisdom = FRIEND_WISDOM;
             friend.has_left = false;
-            friend.chatted = false;
+            friend.known = true;
         }
     }
 
@@ -140,29 +142,36 @@ public class Player implements wtr.sim.Player {
 
         selfPlayer = self;
 
-        // Identify soul mate
-        if (more_wisdom > FRIEND_WISDOM) {
-            people[chat.id].status = Person.Status.SOULMATE;
-            soul_mate_id = chat.id;
-        }
-
-        // Note if we've chatted with them to update expected values
-        Person person_chatting_with = people[chat.id];
-        if (!person_chatting_with.chatted) {
-            person_chatting_with.chatted = true;
-
-            // If it's a stranger, update the expected wisdom for all unknowns
-            if (person_chatting_with.status == Person.Status.STRANGER) {
-                updateExpectedWisdom(more_wisdom);
-            }
-        }
-
-        // Update remaining wisdom
-        people[chat.id].remaining_wisdom = more_wisdom;
-
-        // Attempt to continue chatting if there is more wisdom
         if (chatting) {
             last_person_chatted_id = chat.id;
+
+            // Note if we've chatted with them to update expected values
+            Person person_chatting_with = people[chat.id];
+
+            // Can only be stranger or soul mate. Friends are already known.
+            if (!person_chatting_with.known) {
+                stranger_counter++;
+                person_chatting_with.known = true;
+
+                // Identify if soul mate
+                if (more_wisdom > FRIEND_WISDOM) {
+                    people[chat.id].status = Person.Status.SOULMATE;
+                    soul_mate_id = chat.id;
+                    soulmate_counter++;
+                }
+
+                /*
+                println(stranger_counter + " strangers");
+                println(soulmate_counter + " soulmate(s)");
+*/
+                // Update the expected wisdom for all unknowns
+                updateExpectedWisdom(more_wisdom);
+            }
+
+            // Update remaining wisdom
+            people[chat.id].remaining_wisdom = more_wisdom;
+
+            // Attempt to continue chatting if there is more wisdom
 
             // Move closer to prevent others form interrupting
             if (Utils.dist(self, chat) > RADIUS_TO_MAINTAIN) {
@@ -182,7 +191,6 @@ public class Player implements wtr.sim.Player {
             if (last_person_chatted_id != -1 &&
                     (people[last_person_chatted_id].remaining_wisdom == 9 ||
                             people[last_person_chatted_id].remaining_wisdom == 19) ) {
-                println("stopped talking to us with: " + people[last_person_chatted_id].remaining_wisdom);
                 people[last_person_chatted_id].has_left = true;
                 last_person_chatted_id = -1;
             }
@@ -215,8 +223,9 @@ public class Player implements wtr.sim.Player {
             }
 
             if (Utils.inRange(selfPlayer, p)) {
-                // If soul mate is in range, always attempt to speak with them.
-                if (p.id == soul_mate_id) {
+                // If soul mate is in range and if they are more valuable than a friend, always attempt to speak
+                // with them.
+                if (p.id == soul_mate_id && people[soul_mate_id].remaining_wisdom >= 50) {
                     return new Point(0.0, 0.0, p.id);
                 }
                 potentialTargets.add(p);
@@ -325,15 +334,22 @@ public class Player implements wtr.sim.Player {
     }
 
     public void updateExpectedWisdom(int new_found_wisdom) {
-        total_wisdom -= new_found_wisdom;
-        total_unknowns--;
-	if (total_unknowns > 0) {
-	    expected_wisdom = total_wisdom / total_unknowns;
-	}
+        if (new_found_wisdom > 60) {
+            total_wisdom -= 400;
+        } else if (new_found_wisdom > 18) {
+            total_wisdom -= 20;
+        } else if (new_found_wisdom > 8) {
+            total_wisdom -= 10;
+        }
 
-        for (Person p : people) {
-            if (p.status == Person.Status.STRANGER && p.chatted == false) {
-                p.remaining_wisdom = expected_wisdom;
+        total_unknowns--;
+        if (total_unknowns > 0) {
+            expected_wisdom = total_wisdom / total_unknowns;
+
+            for (Person p : people) {
+                if (p.status == Person.Status.STRANGER && p.known == false) {
+                    p.remaining_wisdom = expected_wisdom;
+                }
             }
         }
     }
