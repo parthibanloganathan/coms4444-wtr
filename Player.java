@@ -81,9 +81,49 @@ public class Player implements wtr.sim.Player {
         }
     }
 
+    private double scorePlayer(Point[] players, int[] chat_ids, Point target) {
+	Point self = null;
+	for (Point p : players) {
+	    if (p.id == self_id) {
+		self = p;
+	    }
+	}
+	int interruptCount = 0; // number of players within distance 3 of midpoint
+	int targetCount = 0; // number of players within distance 6 of target
+	int selfCount = 1; // number of players within distance 6 of self
+	Point midpoint = new Point(0.5*target.x  + 0.5*self.x, 0.5*target.y + 0.5*self.y, self_id);	
+	for (Point p : players) {
+	    if (p.id == target.id || p.id == self.id) {
+		continue;
+	    }
+	    boolean available = isAvailable(p.id,players,chat_ids);
+	    if (Utils.dist(p,midpoint) < 0.75 && !available) {
+		return 0;
+	    }
+	    if (Utils.dist(p,midpoint) < 3 && available) {
+		interruptCount++;
+	    }
+	    if (Utils.dist(p,target) < 6 && available) {
+		targetCount++;
+	    }
+	    if (Utils.dist(p,self) < 6 && people[p.id].remaining_wisdom > 0 && !people[p.id].has_left && available) {
+		selfCount++;
+	    }
+	}
+	double Pr_no_interrupt = Math.pow( 1 - 1.5 / (9*Math.PI), interruptCount); // assume other players move randomly up to 3 units
+	double wisdomRate = 1.0;
+	if (people[target.id].status == Person.Status.SOULMATE) {
+	    wisdomRate = 2.0;
+	}
+	double time_to_acquire_wisdom = (double)people[target.id].remaining_wisdom / wisdomRate;
+	double time_to_initiate_conversation = (double)targetCount * 2.0 * (double)selfCount / (double) (players.length - 1); // assume symmetry and other players choose a desirable player at random to talk to
+	double time_spent = time_to_initiate_conversation + time_to_acquire_wisdom / Pr_no_interrupt;
+	return people[target.id].remaining_wisdom / time_spent;
+    }
+
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-
+	System.out.println("id: " + self_id + " time: " + time);
         int i = 0;
         int j = 0;
         while (players[i].id != self_id) {
@@ -154,7 +194,7 @@ public class Player implements wtr.sim.Player {
             }
 
             // Else move to some one else to talk with
-            Point bestTargetToMoveTo = bestTargetToMoveTo(players);
+            Point bestTargetToMoveTo = bestTargetToMoveTo(players,chat_ids);
             if (bestTargetToMoveTo != null) {
                 return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
             }
@@ -210,17 +250,24 @@ public class Player implements wtr.sim.Player {
     /**
      * Go to player with maximum expected remaining wisdom keeping in mind ignored players
      */
-    private Point bestTargetToMoveTo(Point[] players) {
+    private Point bestTargetToMoveTo(Point[] players, int[] chat_ids) {
+	Point self;
+	for (Point p : players) {
+	    if (p.id == self_id) {
+		self = p;
+	    }
+	}
         Point bestPlayer = null;
         Point bestIgnoredPlayer = null;
-        int maxWisdom = 0;
+        double maxScore = 0;
         for (Point p : players) {
-            if (p.id == self_id)
+            if (p.id == self_id || !isAvailable(p.id,players,chat_ids))
                 continue;
-            int curPlayerRemWisdom = people[p.id].remaining_wisdom;
-            if (curPlayerRemWisdom > maxWisdom) {
-                maxWisdom = curPlayerRemWisdom;
-
+            //int curPlayerRemWisdom = people[p.id].remaining_wisdom;
+	    double curScore = scorePlayer(players, chat_ids,p);
+            if (curScore > maxScore) {
+	    //maxWisdom = curPlayerRemWisdom;
+		maxScore = curScore;
                 // If this is a person who has walked away from us, we will only move to them
                 // if there is no one better.
                 if (people[p.id].has_left) {
@@ -231,7 +278,7 @@ public class Player implements wtr.sim.Player {
             }
         }
 
-        if (maxWisdom > 0) {
+        if (maxScore > 0) {
             return bestPlayer;
         } else {
             return bestIgnoredPlayer;
@@ -245,8 +292,11 @@ public class Player implements wtr.sim.Player {
         int i = 0, j = 0;
         while (players[i].id != id)
             i++;
-        while (players[j].id != chat_ids[i])
-            j++;
+        while (players[j].id != chat_ids[i]) {
+            if (++j > players.length-1) {
+		return false;
+	    }
+	}
         return i == j;
     }
 
