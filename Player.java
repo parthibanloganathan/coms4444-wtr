@@ -8,8 +8,8 @@ public class Player implements wtr.sim.Player {
 
     // Constants
     public static final int PLAYER_RANGE = 6;
-    public static final double OUTER_RADIUS = 1.995; // 2 but account for floating point error
-    public static final double INNER_RADIUS = 0.505; // 0.5 but account for floating point error
+    public static final double OUTER_RADIUS = 1.999999999; // 2 but account for floating point error
+    public static final double INNER_RADIUS = 0.500000001; // 0.5 but account for floating point error
     public static final double RADIUS_TO_MAINTAIN = 0.6;
     public static final int FRIEND_WISDOM = 50;
     public static final int SOUL_MATE_WISDOM = 400;
@@ -34,6 +34,8 @@ public class Player implements wtr.sim.Player {
     private int stranger_counter = 0;
     private int soulmate_counter = 0;
     private int plays = 0;
+
+    private Point prevChatLocation;
 
     private void println(String s) {
         //System.out.println(s);
@@ -84,6 +86,10 @@ public class Player implements wtr.sim.Player {
     }
 
     private double scorePlayer(Point[] players, int[] chat_ids, Point target) {
+	return scorePlayer(players, chat_ids, target, false);
+    }
+    
+    private double scorePlayer(Point[] players, int[] chat_ids, Point target, boolean initiated) {
 	Point self = null;
 	for (Point p : players) {
 	    if (p.id == self_id) {
@@ -120,8 +126,14 @@ public class Player implements wtr.sim.Player {
 	}
 	double time_to_acquire_wisdom = (double)people[target.id].remaining_wisdom / wisdomRate;
 	double time_to_initiate_conversation = (double)targetCount * 2.0 * (double)selfCount / (double) (players.length - 1); // assume symmetry and other players choose a desirable player at random to talk to
-	double time_spent = time_to_initiate_conversation + time_to_acquire_wisdom / Pr_no_interrupt;
-	return people[target.id].remaining_wisdom / time_spent;
+	double time_spent_acquiring_wisdom = time_to_acquire_wisdom / Pr_no_interrupt;
+	double time_spent = time_to_initiate_conversation + time_spent_acquiring_wisdom;
+	if (!initiated) {
+	    return people[target.id].remaining_wisdom / time_spent;
+	}
+	else {
+	    return people[target.id].remaining_wisdom / time_spent_acquiring_wisdom;
+	}
     }
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
@@ -129,13 +141,19 @@ public class Player implements wtr.sim.Player {
 	System.out.println("id: " + self_id + " time: " + time);
         int i = 0;
         int j = 0;
+	int k = 0;
         while (players[i].id != self_id) {
             i++;
         }
         while (players[j].id != chat_ids[i]) {
             j++;
         }
-
+	Point lastChatted = null;
+	for (Point p : players) {
+	    if (p.id == last_person_chatted_id) {
+		lastChatted = p;
+	    }
+	}
         Point self = players[i];
         Point chat = players[j];
 
@@ -145,7 +163,7 @@ public class Player implements wtr.sim.Player {
 
         if (chatting) {
             last_person_chatted_id = chat.id;
-
+	    prevChatLocation = chat;
             // Note if we've chatted with them to update expected values
             Person person_chatting_with = people[chat.id];
 
@@ -177,14 +195,15 @@ public class Player implements wtr.sim.Player {
             // Move closer to prevent others form interrupting
             if (Utils.dist(self, chat) > RADIUS_TO_MAINTAIN) {
                 return getCloserToTarget(self, chat);
-            }
+	    }
 
             // Either continue chatting or wait for some time to continue conversation before leaving
             if (wiser && people[chat.id].remaining_wisdom > 0) {
                 last_time_wisdom_gained = time;
                 return new Point(0.0, 0.0, chat.id);
             } else if (!wiser && time - last_time_wisdom_gained < wisdomDependentWaitTime(chat)) {
-                return new Point(0.0, 0.0, chat.id);
+		//else if (shouldWait(players, chat_ids, chat)){
+		return new Point(0.0, 0.0, chat.id);
             }
         }
         else {
@@ -192,23 +211,27 @@ public class Player implements wtr.sim.Player {
             if (last_person_chatted_id != -1 &&
                     (people[last_person_chatted_id].remaining_wisdom == 9 ||
                             people[last_person_chatted_id].remaining_wisdom == 19) ) {
-                people[last_person_chatted_id].has_left = true;
-                last_person_chatted_id = -1;
+		// See if other player moved closer
+		if ( lastChatted == null || Math.abs(Utils.dist(prevChatLocation, lastChatted) - Utils.dist(lastChatted,self)) > 0.1)  {
+		    people[last_person_chatted_id].has_left = true;
+		    last_person_chatted_id = -1;
+		}
             }
-
-            // Try to initiate chat with person in range if previously not chatting
-            Point closestTarget = bestTarget(players, chat_ids);
-            if (closestTarget != null) {
-                return closestTarget;
-            }
-
-            // Else move to some one else to talk with
-            Point bestTargetToMoveTo = bestTargetToMoveTo(players,chat_ids);
-            if (bestTargetToMoveTo != null) {
-                return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
-            }
-        }
-
+	}
+	last_person_chatted_id = -1;
+	prevChatLocation = null;
+	// Try to initiate chat with person in range if previously not chatting
+	Point closestTarget = bestTarget(players, chat_ids);
+	if (closestTarget != null) {
+	    return closestTarget;
+	}
+	
+	// Else move to some one else to talk with
+	Point bestTargetToMoveTo = bestTargetToMoveTo(players,chat_ids);
+	if (bestTargetToMoveTo != null) {
+	    return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
+	}
+	
         // Return a random move in the worst case
         return randomMove(self);
     }
@@ -336,6 +359,17 @@ public class Player implements wtr.sim.Player {
 
     public int wisdomDependentWaitTime(Point chat) {
         return Math.round(2 + people[chat.id].remaining_wisdom / 20);
+    }
+
+    public boolean shouldWait(Point[] players, int[] chat_ids, Point chat) {
+	double currScore = scorePlayer(players, chat_ids, chat, true);
+	for (Point p : players) {
+	    if (p.id == self_id || p.id == chat.id) {continue;}
+	    if (scorePlayer(players,chat_ids,p) > currScore) {
+		return false;
+	    }
+	}
+	return true;
     }
 
     public void updateExpectedWisdom(int new_found_wisdom) {
