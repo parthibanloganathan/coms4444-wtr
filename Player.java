@@ -295,9 +295,11 @@ public class Player implements wtr.sim.Player {
         total_unknowns--;
         expected_wisdom = total_wisdom / total_unknowns;
 
-        for (Person p : people) {
-            if (p.status == Person.Status.STRANGER && p.known == false) {
-                p.remaining_wisdom = expected_wisdom;
+        if (total_unknowns > 0) {
+            for (Person p : people) {
+                if (p.status == Person.Status.STRANGER && p.known == false) {
+                    p.remaining_wisdom = expected_wisdom;
+                }
             }
         }
     }
