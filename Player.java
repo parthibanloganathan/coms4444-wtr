@@ -91,7 +91,7 @@ public class Player implements wtr.sim.Player {
 	    }
 	}
 	int interruptCount = 0; // number of players within distance 3 of midpoint
-	int targetCount = 0; // number of players within distance 6 of target
+	int targetCount = 1; // number of players within distance 6 of target
 	int selfCount = 1; // number of players within distance 6 of self
 	Point midpoint = new Point(0.5*target.x  + 0.5*self.x, 0.5*target.y + 0.5*self.y, self_id);	
 	for (Point p : players) {
