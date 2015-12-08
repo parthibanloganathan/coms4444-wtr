@@ -93,7 +93,8 @@ public class Player implements wtr.sim.Player {
 	int interruptCount = 0; // number of players within distance 3 of midpoint
 	int targetCount = 1; // number of players within distance 6 of target
 	int selfCount = 1; // number of players within distance 6 of self
-	Point midpoint = new Point(0.5*target.x  + 0.5*self.x, 0.5*target.y + 0.5*self.y, self_id);	
+	double distance = Utils.dist(self,target);
+	Point midpoint = new Point(self.x + (target.x-self.x)*(distance - INNER_RADIUS)/distance, self.y + (target.y-self.y)*(distance - INNER_RADIUS)/distance, self_id);	
 	for (Point p : players) {
 	    if (p.id == target.id || p.id == self.id) {
 		continue;
@@ -225,9 +226,9 @@ public class Player implements wtr.sim.Player {
             if (Utils.inRange(selfPlayer, p)) {
                 // If soul mate is in range and if they are more valuable than a friend, always attempt to speak
                 // with them.
-                if (p.id == soul_mate_id && people[soul_mate_id].remaining_wisdom >= 50) {
+                /*if (p.id == soul_mate_id && people[soul_mate_id].remaining_wisdom >= 50) {
                     return new Point(0.0, 0.0, p.id);
-                }
+		    }*/
                 potentialTargets.add(p);
             }
         }
@@ -236,16 +237,20 @@ public class Player implements wtr.sim.Player {
 
         while (!potentialTargets.isEmpty()) {
             Point nextTarget = potentialTargets.poll();
-            if (isAvailable(nextTarget.id, players, chat_ids) && people[nextTarget.id].remaining_wisdom != 0) {
-
-                // If this is a person who has walked away from us, we will only attempt to talk to them
-                // if there is no one better.
-                if (people[nextTarget.id].has_left) {
-                    ignored_person = nextTarget;
-                } else {
-                    return new Point(0.0, 0.0, nextTarget.id);
-                }
+            if (isAvailable(nextTarget.id, players, chat_ids)) {
+		if (people[nextTarget.id].remaining_wisdom != 0) {		    
+		    // If this is a person who has walked away from us, we will only attempt to talk to them
+		    // if there is no one better.
+		    if (people[nextTarget.id].has_left) {
+			ignored_person = nextTarget;
+		    } else {
+			return new Point(0.0, 0.0, nextTarget.id);
+		    }
+		}
             }
+	    else { // chatting player blocking us from talking to anyone further away
+		return null;
+	    }
         }
 
         // Go to ignored person if no one else is available
