@@ -44,48 +44,53 @@ public class Player implements wtr.sim.Player {
     }
 
     public void init(int id, int[] friend_ids, int strangers) {
-        time = 0;
-        self_id = id;
-        num_strangers = strangers;
-        num_friends = friend_ids.length;
-        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
-        people = new Person[n];
-        total_unknowns = num_strangers + 1; // strangers + soul mate
-        total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst unknowns
-        expected_wisdom = total_wisdom / total_unknowns;
-        simpleStrategyFlag = (n == 100 || n == 750) && num_friends == 0;
 //        simpleStrategyFlag = false;
 
-        // Initialize strangers and soul mate
-        for (int i = 0; i < people.length; i++) {
-            Person stranger = new Person();
-            stranger.status = Person.Status.STRANGER;
-            stranger.id = i;
-            stranger.remaining_wisdom = expected_wisdom;
-            stranger.wisdom = expected_wisdom;
-            stranger.has_left = false;
-            stranger.known = false;
-            people[i] = stranger;
+        if (simpleStrategyFlag) {
+            simpleInit(id, friend_ids, strangers);
         }
+        else {
+            time = 0;
+            self_id = id;
+            num_strangers = strangers;
+            num_friends = friend_ids.length;
+            n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+            people = new Person[n];
+            total_unknowns = num_strangers + 1; // strangers + soul mate
+            total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst unknowns
+            expected_wisdom = total_wisdom / total_unknowns;
+            simpleStrategyFlag = (n == 100 || n == 750) && num_friends == 0;
+            // Initialize strangers and soul mate
+            for (int i = 0; i < people.length; i++) {
+                Person stranger = new Person();
+                stranger.status = Person.Status.STRANGER;
+                stranger.id = i;
+                stranger.remaining_wisdom = expected_wisdom;
+                stranger.wisdom = expected_wisdom;
+                stranger.has_left = false;
+                stranger.known = false;
+                people[i] = stranger;
+            }
 
-        // Initialize us
-        Person us = people[self_id];
-        us.status = Person.Status.US;
-        us.id = self_id;
-        us.wisdom = 0;
-        us.remaining_wisdom = 0;
-        us.has_left = true;
-        us.known = true;
+            // Initialize us
+            Person us = people[self_id];
+            us.status = Person.Status.US;
+            us.id = self_id;
+            us.wisdom = 0;
+            us.remaining_wisdom = 0;
+            us.has_left = true;
+            us.known = true;
 
-        // Initialize friends
-        for (int friend_id : friend_ids) {
-            Person friend = people[friend_id];
-            friend.id = friend_id;
-            friend.status = Person.Status.FRIEND;
-            friend.wisdom = FRIEND_WISDOM;
-            friend.remaining_wisdom = FRIEND_WISDOM;
-            friend.has_left = false;
-            friend.known = true;
+            // Initialize friends
+            for (int friend_id : friend_ids) {
+                Person friend = people[friend_id];
+                friend.id = friend_id;
+                friend.status = Person.Status.FRIEND;
+                friend.wisdom = FRIEND_WISDOM;
+                friend.remaining_wisdom = FRIEND_WISDOM;
+                friend.has_left = false;
+                friend.known = true;
+            }
         }
     }
 
@@ -142,10 +147,9 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-//        if (simpleStrategyFlag) {
-//            println("simple");
-//            return simplePlay(players, chat_ids, wiser, more_wisdom);
-//        }
+        if (simpleStrategyFlag) {
+            return simplePlay(players, chat_ids, wiser, more_wisdom);
+        }
         int i = 0;
         int j = 0;
         int k = 0;
@@ -255,7 +259,9 @@ public class Player implements wtr.sim.Player {
 
         Point self = players[i];
         Point chat = players[j];
+
         boolean chatting = (i != j);
+
         selfPlayer = self;
         people[chat.id].remaining_wisdom = more_wisdom;
 
@@ -275,12 +281,12 @@ public class Player implements wtr.sim.Player {
             }
         }
         else { // Try to initiate chat if previously not chatting
-            Point closestTarget = SimpleStrategyUtils.bestTarget(players, chat_ids, people, selfPlayer);
+            Point closestTarget = simpleBestTarget(players, chat_ids);
             if (closestTarget != null) {
                 return closestTarget;
             }
 
-            Point bestTargetToMoveTo = SimpleStrategyUtils.bestTargetToMoveTo(players, people, self_id);
+            Point bestTargetToMoveTo = simpleBestTargetToMoveTo(players);
             if (bestTargetToMoveTo != null) {
                 return getCloserToTarget(selfPlayer, bestTargetToMoveTo);
             }
@@ -358,13 +364,7 @@ public class Player implements wtr.sim.Player {
                 continue;
             //int curPlayerRemWisdom = people[p.id].remaining_wisdom;
             double curScore;
-            if (simpleStrategyFlag) {
-                println("Simple");
-                curScore = people[p.id].remaining_wisdom;
-            }
-            else {
-                curScore = scorePlayer(players, chat_ids,p);
-            }
+            curScore = scorePlayer(players, chat_ids,p);
             if (curScore > maxScore) {
                 //maxWisdom = curPlayerRemWisdom;
                 maxScore = curScore;
@@ -454,5 +454,81 @@ public class Player implements wtr.sim.Player {
                 }
             }
         }
+    }
+
+    private void simpleInit(int id, int[] friend_ids, int strangers) {
+        time = 0;
+        self_id = id;
+        num_strangers = strangers;
+        num_friends = friend_ids.length;
+        n = num_friends + num_strangers + 2; // people = friends + strangers + soul mate + us
+        people = new Person[n];
+        total_unknowns = num_strangers + 1;
+        total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst strangers and soul mate
+        expected_wisdom = total_wisdom / total_unknowns;
+        // Initialize strangers and soul mate
+        for (int i = 0; i < people.length; i++) {
+            Person stranger = new Person();
+            stranger.status = Person.Status.STRANGER;
+            stranger.id = i;
+            stranger.remaining_wisdom = expected_wisdom;
+            stranger.wisdom = expected_wisdom;
+            stranger.has_left = false;
+            people[i] = stranger;
+        }
+
+        // Initialize us
+        Person us = people[self_id];
+        us.status = Person.Status.US;
+        us.wisdom = 0;
+        us.remaining_wisdom = 0;
+
+        // Initialize friends
+        for (int friend_id : friend_ids) {
+            Person friend = people[friend_id];
+            friend.id = friend_id;
+            friend.status = Person.Status.FRIEND;
+            friend.wisdom = FRIEND_WISDOM;
+            friend.remaining_wisdom = FRIEND_WISDOM;
+            friend.has_left = false;
+        }
+    }
+
+    private Point simpleBestTarget(Point[] players, int[] chat_ids) {
+        PriorityQueue<Point> potentialTargets = new PriorityQueue<>(new TargetComparator(selfPlayer));
+        for (Point p : players) {
+            if (p.id == selfPlayer.id || people[p.id].remaining_wisdom == 0)
+                continue;
+
+            if (Utils.inRange(selfPlayer, p)) {
+                potentialTargets.add(p);
+            }
+        }
+
+        while (!potentialTargets.isEmpty()) {
+            Point nextTarget = potentialTargets.poll();
+            if (isAvailable(nextTarget.id, players, chat_ids) && people[nextTarget.id].remaining_wisdom != 0) {
+                return new Point(0.0, 0.0, nextTarget.id);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Go to player with maximum expected remaining wisdom
+     */
+    private Point simpleBestTargetToMoveTo(Point[] players) {
+        Point bestPlayer = null;
+        int maxWisdom = 0;
+        for (Point p : players) {
+            if (p.id == self_id)
+                continue;
+            int curPlayerRemWisdom = people[p.id].remaining_wisdom;
+            if (curPlayerRemWisdom > maxWisdom) {
+                maxWisdom = curPlayerRemWisdom;
+                bestPlayer = p;
+            }
+        }
+        return bestPlayer;
     }
 }
