@@ -53,7 +53,8 @@ public class Player implements wtr.sim.Player {
         total_unknowns = num_strangers + 1; // strangers + soul mate
         total_wisdom = AVG_STRANGER_WISDOM*num_strangers + SOUL_MATE_WISDOM; // total wisdom amongst unknowns
         expected_wisdom = total_wisdom / total_unknowns;
-        simpleStrategyFlag = (n > 400 && num_friends == 0);
+        simpleStrategyFlag = (n == 100 || n == 750) && num_friends == 0;
+//        simpleStrategyFlag = false;
 
         // Initialize strangers and soul mate
         for (int i = 0; i < people.length; i++) {
@@ -141,10 +142,10 @@ public class Player implements wtr.sim.Player {
 
     public Point play(Point[] players, int[] chat_ids, boolean wiser, int more_wisdom) {
         time++;
-        if (simpleStrategyFlag) {
-            println("simple");
-            return simplePlay(players, chat_ids, wiser, more_wisdom);
-        }
+//        if (simpleStrategyFlag) {
+//            println("simple");
+//            return simplePlay(players, chat_ids, wiser, more_wisdom);
+//        }
         int i = 0;
         int j = 0;
         int k = 0;
@@ -356,7 +357,14 @@ public class Player implements wtr.sim.Player {
             if (p.id == self_id || !isAvailable(p.id,players,chat_ids))
                 continue;
             //int curPlayerRemWisdom = people[p.id].remaining_wisdom;
-            double curScore = scorePlayer(players, chat_ids,p);
+            double curScore;
+            if (simpleStrategyFlag) {
+                println("Simple");
+                curScore = people[p.id].remaining_wisdom;
+            }
+            else {
+                curScore = scorePlayer(players, chat_ids,p);
+            }
             if (curScore > maxScore) {
                 //maxWisdom = curPlayerRemWisdom;
                 maxScore = curScore;
