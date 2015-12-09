@@ -208,7 +208,7 @@ public class Player implements wtr.sim.Player {
         }
         else {
             // See if other player left because we have no wisdom remaining to give
-            if (last_person_chatted_id != -1 &&
+            if (last_person_chatted_id != -1 && people[last_person_chatted_id].status != Person.Status.FRIEND &&
                     (people[last_person_chatted_id].remaining_wisdom == 9 ||
                             people[last_person_chatted_id].remaining_wisdom == 19) ) {
 		// See if other player moved closer
@@ -281,7 +281,7 @@ public class Player implements wtr.sim.Player {
             return new Point(0.0, 0.0, ignored_person.id);
         } else {
             return null;
-        }
+	}
     }
 
     /**
