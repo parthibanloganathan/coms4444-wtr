@@ -185,6 +185,11 @@ public class Player implements wtr.sim.Player {
 */
                 // Update the expected wisdom for all unknowns
                 updateExpectedWisdom(more_wisdom);
+		for (Point p : players) {
+		    if (!people[p.id].known) {
+			people[p.id].remaining_wisdom = expected_wisdom;
+		    }
+		}
             }
 
             // Update remaining wisdom
